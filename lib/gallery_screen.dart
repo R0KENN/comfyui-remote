@@ -73,8 +73,7 @@ class _GalleryScreenState extends State<GalleryScreen>
   Future<void> _shareImage(Uint8List imageBytes) async {
     try {
       final dir = await getTemporaryDirectory();
-      final file = File(
-          '${dir.path}/comfyui_share_${DateTime.now().millisecondsSinceEpoch}.png');
+      final file = File('${dir.path}/comfyui_share.png');
       await file.writeAsBytes(imageBytes);
       await Share.shareXFiles([XFile(file.path)], text: 'ComfyGo');
     } catch (e) {

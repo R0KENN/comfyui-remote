@@ -231,6 +231,7 @@ mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeState
 
       await BackgroundGenerationService.startTracking(
           serverCtrl.text, promptId);
+      await BackgroundGenerationService.savePromptId(promptId);
 
       final images = await service.fetchResults(promptId);
 
