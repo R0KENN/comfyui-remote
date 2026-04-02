@@ -26,6 +26,9 @@ on State<T>, HomeStateMixin<T> {
   Timer? _timeoutTimer;
   static const _timeoutMinutes = 10;
 
+  // Completer для ожидания завершения генерации по WebSocket
+  Completer<String?>? _generationCompleter;
+
   void startTimer() {
     elapsed = 0;
     timer?.cancel();
@@ -50,15 +53,12 @@ on State<T>, HomeStateMixin<T> {
   Future<void> _checkServerAlive() async {
     final base = serverCtrl.text.trim();
     if (base.isEmpty) return;
-
     try {
       final resp = await http
           .get(Uri.parse('$base/system_stats'))
           .timeout(const Duration(seconds: 5));
       if (resp.statusCode == 200) {
-        if (!serverOnline) {
-          setState(() => serverOnline = true);
-        }
+        if (!serverOnline) setState(() => serverOnline = true);
       } else {
         _handleServerLost();
       }
@@ -68,12 +68,8 @@ on State<T>, HomeStateMixin<T> {
   }
 
   void _handleServerLost() {
-    if (serverOnline) {
-      setState(() => serverOnline = false);
-    }
-    if (isGenerating) {
-      reconnectIfGenerating();
-    }
+    if (serverOnline) setState(() => serverOnline = false);
+    if (isGenerating) reconnectIfGenerating();
   }
 
   // ===================== ТАЙМАУТ ГЕНЕРАЦИИ =====================
@@ -93,45 +89,35 @@ on State<T>, HomeStateMixin<T> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1E),
-        shape:
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Сервер не отвечает',
-            style: TextStyle(
-                color: Color(0xFFF0F0F0),
-                fontSize: 16,
-                fontWeight: FontWeight.w600)),
+            style: TextStyle(color: Color(0xFFF0F0F0), fontSize: 16, fontWeight: FontWeight.w600)),
         content: Text(
             'Генерация длится уже ${fmtTime(elapsed)}. Сервер может быть завис.',
             style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 14)),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _startTimeout();
-            },
-            child: const Text('Подождать ещё',
-                style: TextStyle(color: Color(0xFF8E8E93))),
+            onPressed: () { Navigator.pop(ctx); _startTimeout(); },
+            child: const Text('Подождать ещё', style: TextStyle(color: Color(0xFF8E8E93))),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              stopGeneration();
-            },
-            child: const Text('Отменить',
-                style: TextStyle(color: Color(0xFFFF3B30))),
+            onPressed: () { Navigator.pop(ctx); stopGeneration(); },
+            child: const Text('Отменить', style: TextStyle(color: Color(0xFFFF3B30))),
           ),
         ],
       ),
     );
   }
 
-  // ===================== WEBSOCKET С ПРЕВЬЮ =====================
+  // ===================== WEBSOCKET =====================
 
   void _handleWsMessage(dynamic msg) {
     if (msg is String) {
       try {
         final data = jsonDecode(msg);
-        if (data['type'] == 'progress') {
+        final type = data['type'];
+
+        if (type == 'progress') {
           final v = data['data']['value'];
           final m = data['data']['max'];
           setState(() {
@@ -144,21 +130,32 @@ on State<T>, HomeStateMixin<T> {
             progress: v is int ? v : (v as num).toInt(),
             maxProgress: m is int ? m : (m as num).toInt(),
           );
-        } else if (data['type'] == 'executing' &&
-            data['data']['node'] != null) {
-          setState(() {
-            currentNode =
-                service.getNodeDisplayName(data['data']['node'].toString());
-          });
+        } else if (type == 'executing') {
+          final node = data['data']['node'];
+          if (node != null) {
+            setState(() {
+              currentNode = service.getNodeDisplayName(node.toString());
+            });
+          } else {
+            // node == null означает: генерация завершена!
+            // Получаем promptId из сообщения
+            final promptId = data['data']['prompt_id']?.toString();
+            if (_generationCompleter != null && !_generationCompleter!.isCompleted) {
+              _generationCompleter!.complete(promptId);
+            }
+          }
+        } else if (type == 'execution_error') {
+          final errorMsg = data['data']?['exception_message'] ?? 'Неизвестная ошибка';
+          if (_generationCompleter != null && !_generationCompleter!.isCompleted) {
+            _generationCompleter!.completeError(Exception(errorMsg));
+          }
         }
       } catch (_) {}
     } else if (msg is List<int>) {
       if (msg.length > 8) {
         final imageData = Uint8List.fromList(msg.sublist(8));
         if (imageData.length > 100) {
-          setState(() {
-            previewImage = imageData;
-          });
+          setState(() => previewImage = imageData);
         }
       }
     }
@@ -171,9 +168,7 @@ on State<T>, HomeStateMixin<T> {
     service.clearObjectInfoCache();
     final online = await service.checkServer();
     setState(() => serverOnline = online);
-    if (online) {
-      _startAutoReconnect();
-    }
+    if (online) _startAutoReconnect();
   }
 
   Future<void> saveAll() async {
@@ -208,7 +203,6 @@ on State<T>, HomeStateMixin<T> {
     required String dateStr,
     required String timeStr,
   }) async {
-    // Сохраняем в историю
     if (images.isNotEmpty) {
       final imagePaths = await HistoryStorage.saveImages(images);
       final historyEntry = HistoryEntry(
@@ -218,73 +212,46 @@ on State<T>, HomeStateMixin<T> {
         time: timeStr,
         generationTime: time,
         promptPreview: zimageBaseCtrl.text.isNotEmpty
-            ? zimageBaseCtrl.text.substring(
-            0,
-            zimageBaseCtrl.text.length > 100
-                ? 100
-                : zimageBaseCtrl.text.length)
+            ? zimageBaseCtrl.text.substring(0, zimageBaseCtrl.text.length > 100 ? 100 : zimageBaseCtrl.text.length)
             : 'Без промпта',
       );
       await HistoryStorage.add(historyEntry);
-
-      // Автосохранение сида
       await SeedStorage.add(SavedSeed(
-        seed: usedSeed,
-        date: dateStr,
-        time: timeStr,
+        seed: usedSeed, date: dateStr, time: timeStr,
         promptPreview: zimageBaseCtrl.text.isNotEmpty
-            ? zimageBaseCtrl.text.substring(
-            0,
-            zimageBaseCtrl.text.length > 60
-                ? 60
-                : zimageBaseCtrl.text.length)
+            ? zimageBaseCtrl.text.substring(0, zimageBaseCtrl.text.length > 60 ? 60 : zimageBaseCtrl.text.length)
             : '',
         generationTime: time,
       ));
     }
 
-    final genInfo =
-    GenerationInfo(seed: usedSeed, time: timeStr, date: dateStr);
-
+    final genInfo = GenerationInfo(seed: usedSeed, time: timeStr, date: dateStr);
     setState(() {
       lastImages = images;
       lastTime = time;
       lastInfo = genInfo;
-      status = images.isNotEmpty
-          ? 'Готово за $time! Сид: $usedSeed'
-          : 'Нет результата';
+      status = images.isNotEmpty ? 'Готово за $time! Сид: $usedSeed' : 'Нет результата';
       isGenerating = false;
       progress = 1.0;
       currentNode = '';
       previewImage = null;
     });
 
-    // Haptic feedback
     HapticFeedback.heavyImpact();
-
-    // Звук завершения
     await AppSounds.playGenerationComplete();
 
-    // Уведомление
     if (images.isNotEmpty) {
-      await showImageNotification(
-        'Генерация завершена',
-        'Готово за $time (сид: $usedSeed)',
-        images.first,
-      );
+      await showImageNotification('Генерация завершена', 'Готово за $time (сид: $usedSeed)', images.first);
     } else {
       await showNotification('Генерация завершена', 'Нет результата');
     }
 
-    if (images.isNotEmpty && mounted) {
-      setState(() => currentTab = 3);
-    }
+    if (images.isNotEmpty && mounted) setState(() => currentTab = 3);
   }
 
   // ===================== ГЕНЕРАЦИЯ =====================
 
   Future<void> generate() async {
-    // Haptic при запуске
     HapticFeedback.mediumImpact();
 
     setState(() {
@@ -308,52 +275,70 @@ on State<T>, HomeStateMixin<T> {
         await service.uploadImage(img2imgBytes!, img2imgName ?? 'input.png');
       }
 
+      // Создаём completer ПЕРЕД подключением WebSocket
+      _generationCompleter = Completer<String?>();
+
       ws = service.connectWebSocket();
       ws!.stream.listen(
         _handleWsMessage,
-        onError: (_) {},
+        onError: (e) {
+          if (_generationCompleter != null && !_generationCompleter!.isCompleted) {
+            _generationCompleter!.completeError(Exception('WebSocket ошибка: $e'));
+          }
+        },
+        onDone: () {
+          // WS закрылся до завершения — fallback на polling
+          if (_generationCompleter != null && !_generationCompleter!.isCompleted) {
+            _generationCompleter!.complete(null);
+          }
+        },
       );
 
       int? customSeed;
-      if (seedCtrl.text.isNotEmpty) {
-        customSeed = int.tryParse(seedCtrl.text);
-      }
+      if (seedCtrl.text.isNotEmpty) customSeed = int.tryParse(seedCtrl.text);
 
       final workflow = service.buildWorkflow(
         getPromptData(),
-        width: width,
-        height: height,
-        customSeed: customSeed,
-        loraGroups: loraGroups,
+        width: width, height: height,
+        customSeed: customSeed, loraGroups: loraGroups,
       );
       final usedSeed = service.lastSeed;
       final promptId = await service.submitPrompt(workflow);
 
-      await BackgroundGenerationService.startTracking(
-          serverCtrl.text, promptId);
-      await BackgroundGenerationService.savePromptId(promptId);
+      // Сохраняем для фонового отслеживания (но НЕ запускаем его polling
+      // пока WS активен, чтобы не было race condition)
+      await BackgroundGenerationService.startTracking(serverCtrl.text, promptId);
 
-      final images = await service.fetchResults(promptId);
+      setState(() => status = 'Ожидание...');
+
+      // ── Ждём завершения по WebSocket ──
+      String? completedPromptId;
+      try {
+        completedPromptId = await _generationCompleter!.future
+            .timeout(Duration(minutes: _timeoutMinutes));
+      } on TimeoutException {
+        // WS не дождались — пробуем polling
+        completedPromptId = null;
+      }
+
+      // ── Получаем результат ──
+      final fetchId = completedPromptId ?? promptId;
+      final images = await service.fetchResults(fetchId);
 
       stopTimer();
       _stopTimeout();
+      await dismissProgressNotification();
+
       final time = fmtTime(elapsed);
       final now = DateTime.now();
-      final dateStr =
-          '${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year}';
-      final timeStr =
-          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+      final dateStr = '${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year}';
+      final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
-      await _onSuccess(
-        images: images,
-        usedSeed: usedSeed,
-        time: time,
-        dateStr: dateStr,
-        timeStr: timeStr,
-      );
+      await _onSuccess(images: images, usedSeed: usedSeed, time: time, dateStr: dateStr, timeStr: timeStr);
     } catch (e) {
       stopTimer();
       _stopTimeout();
+      await dismissProgressNotification();
 
       String errorMsg;
       if (e is SocketException) {
@@ -372,10 +357,10 @@ on State<T>, HomeStateMixin<T> {
         currentNode = '';
         previewImage = null;
       });
-      // Haptic при ошибке
       HapticFeedback.heavyImpact();
       await showNotification('Ошибка генерации', errorMsg);
     } finally {
+      _generationCompleter = null;
       ws?.sink.close();
       await BackgroundGenerationService.stop();
     }
@@ -384,6 +369,12 @@ on State<T>, HomeStateMixin<T> {
   Future<void> stopGeneration() async {
     HapticFeedback.lightImpact();
     _stopTimeout();
+
+    // Завершаем completer чтобы generate() не висел
+    if (_generationCompleter != null && !_generationCompleter!.isCompleted) {
+      _generationCompleter!.completeError(Exception('Остановлено пользователем'));
+    }
+
     try {
       final ok = await service.cancelGeneration();
       await BackgroundGenerationService.stop();
@@ -397,9 +388,7 @@ on State<T>, HomeStateMixin<T> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  ok ? 'Генерация остановлена' : 'Не удалось остановить')),
+          SnackBar(content: Text(ok ? 'Генерация остановлена' : 'Не удалось остановить')),
         );
       }
     } catch (e) {
@@ -430,6 +419,8 @@ on State<T>, HomeStateMixin<T> {
         final promptId = runningItem[1] as String?;
 
         if (!isGenerating) {
+          _generationCompleter = Completer<String?>();
+
           setState(() {
             isGenerating = true;
             status = 'Восстановление...';
@@ -442,53 +433,27 @@ on State<T>, HomeStateMixin<T> {
           ws?.sink.close();
           ws = service.connectWebSocket();
           ws!.stream.listen(
-                (msg) {
-              if (msg is String) {
-                try {
-                  final wsData = jsonDecode(msg);
-                  if (wsData['type'] == 'progress') {
-                    final v = wsData['data']['value'];
-                    final m = wsData['data']['max'];
-                    setState(() {
-                      progress = v / m;
-                      status = 'Шаг $v / $m';
-                    });
-                  } else if (wsData['type'] == 'executing') {
-                    final node = wsData['data']['node'];
-                    if (node != null) {
-                      setState(() {
-                        currentNode =
-                            service.getNodeDisplayName(node.toString());
-                      });
-                    } else {
-                      onGenerationComplete(promptId);
-                    }
-                  }
-                } catch (_) {}
-              } else if (msg is List<int>) {
-                if (msg.length > 8) {
-                  final imageData = Uint8List.fromList(msg.sublist(8));
-                  if (imageData.length > 100) {
-                    setState(() => previewImage = imageData);
-                  }
-                }
-              }
-            },
+            _handleWsMessage,
             onError: (_) {
-              setState(() {
-                isGenerating = false;
-                status = 'Соединение потеряно';
-                previewImage = null;
-              });
-              stopTimer();
-              _stopTimeout();
+              if (_generationCompleter != null && !_generationCompleter!.isCompleted) {
+                _generationCompleter!.completeError(Exception('WebSocket потерян'));
+              }
+              setState(() { isGenerating = false; status = 'Соединение потеряно'; previewImage = null; });
+              stopTimer(); _stopTimeout();
             },
             onDone: () {
-              if (isGenerating) {
-                onGenerationComplete(promptId);
+              if (_generationCompleter != null && !_generationCompleter!.isCompleted) {
+                _generationCompleter!.complete(promptId);
               }
             },
           );
+
+          // Ждём завершения
+          try {
+            await _generationCompleter!.future.timeout(Duration(minutes: _timeoutMinutes));
+          } catch (_) {}
+
+          await onGenerationComplete(promptId);
         }
       } else if (pending.isEmpty && isGenerating) {
         setState(() {
@@ -505,13 +470,8 @@ on State<T>, HomeStateMixin<T> {
       setState(() => serverOnline = true);
     } catch (e) {
       if (isGenerating) {
-        setState(() {
-          isGenerating = false;
-          status = 'Потеряно соединение';
-          previewImage = null;
-        });
-        stopTimer();
-        _stopTimeout();
+        setState(() { isGenerating = false; status = 'Потеряно соединение'; previewImage = null; });
+        stopTimer(); _stopTimeout();
       }
     }
   }
@@ -526,19 +486,11 @@ on State<T>, HomeStateMixin<T> {
       if (promptId != null) {
         final images = await service.fetchResults(promptId);
         final now = DateTime.now();
-        final dateStr =
-            '${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year}';
-        final timeStr =
-            '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+        final dateStr = '${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year}';
+        final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
         if (images.isNotEmpty) {
-          await _onSuccess(
-            images: images,
-            usedSeed: service.lastSeed,
-            time: time,
-            dateStr: dateStr,
-            timeStr: timeStr,
-          );
+          await _onSuccess(images: images, usedSeed: service.lastSeed, time: time, dateStr: dateStr, timeStr: timeStr);
           return;
         }
       }
@@ -556,5 +508,8 @@ on State<T>, HomeStateMixin<T> {
   void disposeGeneration() {
     _stopAutoReconnect();
     _stopTimeout();
+    if (_generationCompleter != null && !_generationCompleter!.isCompleted) {
+      _generationCompleter!.completeError(Exception('disposed'));
+    }
   }
 }

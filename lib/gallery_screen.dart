@@ -338,7 +338,7 @@ class _GalleryScreenState extends State<GalleryScreen>
                           Navigator.push(
                             context,
                             PageRouteBuilder(
-                              pageBuilder: (_, anim, __) => FadeTransition(
+                              pageBuilder: (_, anim, secondaryAnim) => FadeTransition(
                                 opacity: anim,
                                 child: _FullScreenImage(image: widget.images[index]),
                               ),

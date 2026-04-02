@@ -520,6 +520,17 @@ class ComfyUIService {
       }
     });
 
+    // ── Динамический filename_prefix ──
+    final now = DateTime.now();
+    final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final timeStr = '${now.hour.toString().padLeft(2, '0')}-${now.minute.toString().padLeft(2, '0')}-${now.second.toString().padLeft(2, '0')}';
+    wf.forEach((id, node) {
+      if (node is! Map) return;
+      if (node['class_type'] == 'SaveImage') {
+        node['inputs']['filename_prefix'] = '$dateStr/ComfyRemote/$timeStr';
+      }
+    });
+
     // ── Размеры ──
     if (width != null || height != null) {
       wf.forEach((id, node) {

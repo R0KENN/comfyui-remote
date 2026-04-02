@@ -142,7 +142,7 @@ class GlassTheme {
             ),
           ),
         ),
-        if (trailing != null) trailing,
+        ?trailing,
       ],
     );
   }

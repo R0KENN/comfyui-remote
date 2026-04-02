@@ -99,7 +99,6 @@ class _HomeScreenState extends State<HomeScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver,
         HomeStateMixin<HomeScreen>, GenerationControllerMixin<HomeScreen> {
 
-  StreamSubscription? _bgSub;
 
   void _showPresetsSheet() {
     showModalBottomSheet(
@@ -295,9 +294,9 @@ class _HomeScreenState extends State<HomeScreen>
 
 
     await _checkPendingBackgroundGeneration();
-    _bgSub = BackgroundGenerationService.onComplete.listen((_) {
-      _handleBackgroundComplete();
-    });
+// Не подписываемся на onComplete — основной generate()
+// сам ждёт завершения через WebSocket. BackgroundService
+// нужен только когда приложение было в фоне.
   }
 
   // ===================== ФОНОВАЯ ГЕНЕРАЦИЯ =====================
@@ -308,11 +307,6 @@ class _HomeScreenState extends State<HomeScreen>
     await _handlePendingGeneration(pending['serverUrl']!, pending['promptId']!);
   }
 
-  Future<void> _handleBackgroundComplete() async {
-    final pending = await BackgroundGenerationService.getPendingResult();
-    if (pending == null) return;
-    await _handlePendingGeneration(pending['serverUrl']!, pending['promptId']!);
-  }
 
   Future<void> _handlePendingGeneration(String serverUrl, String promptId) async {
     try {
@@ -1105,7 +1099,6 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
-    _bgSub?.cancel();
     _saveTimer?.cancel();
     saveAll();
     _removeAutoSaveListeners();
