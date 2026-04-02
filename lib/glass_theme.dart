@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 class GlassTheme {
   // ── Цвета AMOLED ──
   static const Color bgDark = Color(0xFF000000);
-  static const Color bgCard = Color(0xFF080809);
-  static const Color bgCardElevated = Color(0xFF0C0C0F);
-  static const Color borderLight = Color(0x0CFFFFFF);
-  static const Color borderActive = Color(0x1AFFFFFF);
+  static const Color bgCard = Color(0xFF0A0A0E);
+  static const Color bgCardElevated = Color(0xFF111116);
+  static const Color borderLight = Color(0x18FFFFFF);
+  static const Color borderActive = Color(0x30FFFFFF);
   static const Color textPrimary = Color(0xFFF2F2F7);
   static const Color textSecondary = Color(0xFF8E8E93);
   static const Color textTertiary = Color(0xFF48484A);
@@ -21,65 +21,100 @@ class GlassTheme {
   static const Color accentPurple = Color(0xFFBF5AF2);
   static const Color accentCyan = Color(0xFF64D2FF);
 
-  // ── Фон scaffold — чистый чёрный AMOLED ──
+  // ── Liquid Glass параметры ──
+  static const double _defaultBlur = 24.0;
+  static const double _defaultTintOpacity = 0.08;
+  static const double _defaultBorderOpacity = 0.12;
+  static const double _specularOpacity = 0.06;
+
+  // ── Фон scaffold ──
   static BoxDecoration get scaffoldDecoration => const BoxDecoration(
     color: Color(0xFF000000),
   );
 
-  // ── Стеклянная карточка с blur ──
+  // ── Liquid Glass карточка ──
   static Widget card({
     required Widget child,
     Color? borderColor,
-    double blur = 20,
+    double blur = _defaultBlur,
     EdgeInsetsGeometry margin =
     const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     EdgeInsetsGeometry padding = const EdgeInsets.all(16),
     double borderRadius = 22,
-    double opacity = 0.035,
+    double tintOpacity = _defaultTintOpacity,
     bool highlight = false,
-    bool useBlur = false,
   }) {
-    final content = Container(
+    return Container(
       margin: margin,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
-          color: borderColor ?? (highlight ? borderActive : borderLight),
+          color: borderColor ??
+              (highlight
+                  ? Colors.white.withValues(alpha: 0.2)
+                  : Colors.white.withValues(alpha: _defaultBorderOpacity)),
           width: 0.5,
-        ),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withValues(alpha: opacity),
-            Colors.white.withValues(alpha: opacity * 0.15),
-          ],
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.6),
-            blurRadius: 32,
-            offset: const Offset(0, 12),
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
-          if (highlight)
+          if (highlight && borderColor != null)
             BoxShadow(
-              color: (borderColor ?? Colors.white).withValues(alpha: 0.04),
-              blurRadius: 1,
-              spreadRadius: 0,
+              color: borderColor.withValues(alpha: 0.08),
+              blurRadius: 16,
+              spreadRadius: -2,
             ),
         ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
-        child: useBlur
-            ? BackdropFilter(
+        child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-          child: Padding(padding: padding, child: child),
-        )
-            : Padding(padding: padding, child: child),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(borderRadius),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: tintOpacity + 0.04),
+                  Colors.white.withValues(alpha: tintOpacity * 0.3),
+                ],
+              ),
+            ),
+            child: Stack(
+              children: [
+                // Specular highlight — блик сверху
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 40,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(borderRadius)),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white.withValues(alpha: _specularOpacity),
+                          Colors.white.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(padding: padding, child: child),
+              ],
+            ),
+          ),
+        ),
       ),
     );
-    return content;
   }
 
   // ── Маленькая стеклянная карточка ──
@@ -90,18 +125,24 @@ class GlassTheme {
     double borderRadius = 14,
     Color? borderColor,
   }) {
-    return Container(
-      margin: margin,
-      padding: padding,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(borderRadius),
-        color: Colors.white.withValues(alpha: 0.025),
-        border: Border.all(
-          color: borderColor ?? const Color(0x08FFFFFF),
-          width: 0.5,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          margin: margin,
+          padding: padding,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(borderRadius),
+            color: Colors.white.withValues(alpha: 0.06),
+            border: Border.all(
+              color: borderColor ?? Colors.white.withValues(alpha: 0.1),
+              width: 0.5,
+            ),
+          ),
+          child: child,
         ),
       ),
-      child: child,
     );
   }
 
@@ -118,10 +159,10 @@ class GlassTheme {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: iconColor.withValues(alpha: 0.08),
+            color: iconColor.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: iconColor.withValues(alpha: 0.12),
+              color: iconColor.withValues(alpha: 0.18),
               width: 0.5,
             ),
           ),
@@ -146,41 +187,47 @@ class GlassTheme {
 
   // ── Статус-бейдж ──
   static Widget statusBadge(String text, Color color, {bool dot = true}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.12)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (dot) ...[
-            Container(
-              width: 5,
-              height: 5,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: color,
-                boxShadow: [
-                  BoxShadow(
-                      color: color.withValues(alpha: 0.6), blurRadius: 6),
-                ],
-              ),
-            ),
-            const SizedBox(width: 6),
-          ],
-          Text(
-            text,
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              letterSpacing: -0.2,
-            ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
           ),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (dot) ...[
+                Container(
+                  width: 5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color,
+                    boxShadow: [
+                      BoxShadow(
+                          color: color.withValues(alpha: 0.6), blurRadius: 6),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                text,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -227,7 +274,7 @@ class GlassTheme {
           height: height,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(height / 2),
-            color: Colors.white.withValues(alpha: 0.03),
+            color: Colors.white.withValues(alpha: 0.06),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(height / 2),
@@ -256,9 +303,9 @@ class GlassTheme {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.07),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.12)),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -312,13 +359,15 @@ class GlassTheme {
   }) {
     return InputDecoration(
       labelText: label,
-      labelStyle:
-      const TextStyle(fontSize: 12, color: textTertiary, letterSpacing: -0.2),
+      labelStyle: const TextStyle(
+          fontSize: 12, color: textTertiary, letterSpacing: -0.2),
       hintText: hint,
-      hintStyle: const TextStyle(fontSize: 11, color: Color(0x18FFFFFF)),
+      hintStyle: TextStyle(
+          fontSize: 11, color: Colors.white.withValues(alpha: 0.12)),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       enabledBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: Color(0x0AFFFFFF)),
+        borderSide:
+        BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         borderRadius: BorderRadius.circular(12),
       ),
       focusedBorder: OutlineInputBorder(
@@ -326,7 +375,7 @@ class GlassTheme {
         borderRadius: BorderRadius.circular(12),
       ),
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.015),
+      fillColor: Colors.white.withValues(alpha: 0.04),
       isDense: isDense,
       contentPadding:
       const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -344,49 +393,57 @@ class GlassTheme {
     double height = 48,
   }) {
     final isEnabled = onTap != null;
-    final button = GestureDetector(
+    return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        height: height,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          gradient: isEnabled
-              ? LinearGradient(colors: [
-            color.withValues(alpha: 0.18),
-            color.withValues(alpha: 0.08),
-          ])
-              : null,
-          color: isEnabled ? null : Colors.white.withValues(alpha: 0.02),
-          border: Border.all(
-            color: isEnabled
-                ? color.withValues(alpha: 0.25)
-                : const Color(0x08FFFFFF),
-            width: 0.5,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: expanded ? MainAxisSize.max : MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 18, color: isEnabled ? color : textTertiary),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              text,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: isEnabled ? Colors.white : textTertiary,
-                letterSpacing: -0.3,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: height,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              gradient: isEnabled
+                  ? LinearGradient(colors: [
+                color.withValues(alpha: 0.22),
+                color.withValues(alpha: 0.1),
+              ])
+                  : null,
+              color:
+              isEnabled ? null : Colors.white.withValues(alpha: 0.03),
+              border: Border.all(
+                color: isEnabled
+                    ? color.withValues(alpha: 0.3)
+                    : Colors.white.withValues(alpha: 0.06),
+                width: 0.5,
               ),
             ),
-          ],
+            child: Row(
+              mainAxisSize: expanded ? MainAxisSize.max : MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon,
+                      size: 18,
+                      color: isEnabled ? color : textTertiary),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  text,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isEnabled ? Colors.white : textTertiary,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
-    return button;
   }
 }

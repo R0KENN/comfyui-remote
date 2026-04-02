@@ -9,6 +9,10 @@ import 'background_service.dart';
 final FlutterLocalNotificationsPlugin notifications =
 FlutterLocalNotificationsPlugin();
 
+/// ID уведомлений
+const int _progressNotifId = 1;
+const int _resultNotifId = 0;
+
 /// Обычное уведомление (текст)
 Future<void> showNotification(String title, String body) async {
   const details = AndroidNotificationDetails(
@@ -19,15 +23,16 @@ Future<void> showNotification(String title, String body) async {
     priority: Priority.high,
   );
   await notifications.show(
-      0, title, body, const NotificationDetails(android: details));
+      _resultNotifId, title, body, const NotificationDetails(android: details));
 }
 
 /// Уведомление с превью-картинкой (BigPicture)
 Future<void> showImageNotification(
     String title, String body, Uint8List imageBytes) async {
+  // Убираем прогресс-уведомление
+  await dismissProgressNotification();
   try {
     final dir = await getTemporaryDirectory();
-    // Фиксированное имя — всегда перезаписывается
     final file = File('${dir.path}/notif_preview.png');
     await file.writeAsBytes(imageBytes);
 
@@ -46,12 +51,41 @@ Future<void> showImageNotification(
       largeIcon: FilePathAndroidBitmap(file.path),
     );
     await notifications.show(
-        0, title, body, NotificationDetails(android: details));
+        _resultNotifId, title, body, NotificationDetails(android: details));
   } catch (_) {
     await showNotification(title, body);
   }
 }
 
+/// Уведомление с прогресс-баром (ongoing)
+Future<void> showProgressNotification({
+  required String title,
+  required String body,
+  required int progress,
+  required int maxProgress,
+}) async {
+  final details = AndroidNotificationDetails(
+    'comfyui_progress_channel',
+    'Прогресс генерации',
+    channelDescription: 'Прогресс текущей генерации',
+    importance: Importance.low,
+    priority: Priority.low,
+    ongoing: true,
+    autoCancel: false,
+    showProgress: true,
+    maxProgress: maxProgress,
+    progress: progress,
+    onlyAlertOnce: true,
+    category: AndroidNotificationCategory.progress,
+  );
+  await notifications.show(
+      _progressNotifId, title, body, NotificationDetails(android: details));
+}
+
+/// Убрать прогресс-уведомление
+Future<void> dismissProgressNotification() async {
+  await notifications.cancel(_progressNotifId);
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

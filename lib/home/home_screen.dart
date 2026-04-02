@@ -323,7 +323,7 @@ class _HomeScreenState extends State<HomeScreen>
         final now = DateTime.now();
         final entry = HistoryEntry(
           imagePaths: imagePaths,
-          seed: int.tryParse(seedCtrl.text) ?? -1,
+          seed: service.lastSeed,
           date: '${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year}',
           time: '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
           generationTime: 'фон',

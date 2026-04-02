@@ -6,10 +6,10 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../gallery_screen.dart';
 import '../history_screen.dart';
-import '../main.dart' show showNotification, showImageNotification;
 import '../background_service.dart';
 import 'home_state.dart';
 import 'dart:io';
+import '../main.dart' show showNotification, showImageNotification, showProgressNotification, dismissProgressNotification;
 
 mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeStateMixin<T> {
   Timer? _reconnectTimer;
@@ -126,6 +126,13 @@ mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeState
             progress = v / m;
             status = 'Шаг $v / $m';
           });
+          // Прогресс в шторку
+          showProgressNotification(
+            title: 'Генерация...',
+            body: 'Шаг $v / $m  •  ${fmtTime(elapsed)}',
+            progress: v is int ? v : (v as num).toInt(),
+            maxProgress: m is int ? m : (m as num).toInt(),
+          );
         } else if (data['type'] == 'executing' &&
             data['data']['node'] != null) {
           setState(() {
@@ -327,6 +334,7 @@ mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeState
       final ok = await service.cancelGeneration();
       await BackgroundGenerationService.stop();
       stopTimer();
+      await dismissProgressNotification();
       setState(() {
         isGenerating = false;
         status = ok ? 'Остановлено' : 'Не удалось остановить';

@@ -278,11 +278,11 @@ class _MonitorScreenState extends State<MonitorScreen>
                   ),
                 ],
 
-                // Мини-график VRAM
+// Мини-график VRAM (без дублирующей подписи)
                 if (_vramHistory.length > 2) ...[
                   const SizedBox(height: 12),
                   _buildMiniChart(
-                    'VRAM',
+                    'История',
                     _vramHistory,
                     Colors.green,
                   ),

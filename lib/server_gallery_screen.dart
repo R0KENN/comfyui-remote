@@ -1,6 +1,10 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
+import 'dart:io';
 import 'glass_theme.dart';
 import 'services.dart';
 
@@ -25,8 +29,6 @@ class _ServerGalleryScreenState extends State<ServerGalleryScreen> {
   Future<void> _loadImages() async {
     setState(() => _loading = true);
     try {
-
-      // Получаем список файлов через history
       final histResp = await http
           .get(Uri.parse('${widget.service.serverUrl}/history'))
           .timeout(const Duration(seconds: 10));
@@ -36,7 +38,6 @@ class _ServerGalleryScreenState extends State<ServerGalleryScreen> {
       if (histResp.statusCode == 200) {
         final history = jsonDecode(histResp.body) as Map<String, dynamic>;
 
-        // Собираем все картинки из истории
         final sorted = history.entries.toList();
         sorted.sort((a, b) {
           final aStatus = a.value['status'] as Map? ?? {};
@@ -102,6 +103,65 @@ class _ServerGalleryScreenState extends State<ServerGalleryScreen> {
     return '${widget.service.serverUrl}/view?filename=$fn&subfolder=$sub&type=$type';
   }
 
+  Future<Uint8List?> _downloadImage(String url) async {
+    try {
+      final resp =
+      await http.get(Uri.parse(url)).timeout(const Duration(seconds: 30));
+      if (resp.statusCode == 200) return resp.bodyBytes;
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> _saveImage(Map<String, dynamic> img) async {
+    final url = _imageUrl(img);
+    final bytes = await _downloadImage(url);
+    if (bytes == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Не удалось скачать'),
+              backgroundColor: Color(0xFFFF3B30)),
+        );
+      }
+      return;
+    }
+    try {
+      await ComfyUIService.saveImage(bytes);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Сохранено: ${img['filename']}'),
+            backgroundColor: const Color(0xFF30D158),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareImage(Map<String, dynamic> img) async {
+    final url = _imageUrl(img);
+    final bytes = await _downloadImage(url);
+    if (bytes == null) return;
+    try {
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/comfyui_share.png');
+      await file.writeAsBytes(bytes);
+      await Share.shareXFiles([XFile(file.path)], text: 'ComfyGo');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -111,7 +171,6 @@ class _ServerGalleryScreenState extends State<ServerGalleryScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // Заголовок
               Padding(
                 padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -130,7 +189,8 @@ class _ServerGalleryScreenState extends State<ServerGalleryScreen> {
                       ),
                     ),
                     const Spacer(),
-                    GlassTheme.chip('${_images.length}', const Color(0xFF5AC8FA)),
+                    GlassTheme.chip(
+                        '${_images.length}', const Color(0xFF5AC8FA)),
                     const SizedBox(width: 8),
                     GestureDetector(
                       onTap: _loadImages,
@@ -139,25 +199,22 @@ class _ServerGalleryScreenState extends State<ServerGalleryScreen> {
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.04),
                           borderRadius: BorderRadius.circular(8),
-                          border:
-                          Border.all(color: const Color(0x0AFFFFFF)),
+                          border: Border.all(
+                              color: const Color(0x0AFFFFFF)),
                         ),
                         child: Icon(Icons.refresh_rounded,
                             size: 16,
-                            color:
-                            Colors.white.withValues(alpha: 0.4)),
+                            color: Colors.white.withValues(alpha: 0.4)),
                       ),
                     ),
                   ],
                 ),
               ),
-
-              // Сетка
               Expanded(
                 child: _loading
                     ? const Center(
-                    child:
-                    CircularProgressIndicator(color: Color(0xFF5AC8FA)))
+                    child: CircularProgressIndicator(
+                        color: Color(0xFF5AC8FA)))
                     : _images.isEmpty
                     ? Center(
                   child: Column(
@@ -165,8 +222,8 @@ class _ServerGalleryScreenState extends State<ServerGalleryScreen> {
                     children: [
                       Icon(Icons.cloud_off_outlined,
                           size: 48,
-                          color:
-                          Colors.white.withValues(alpha: 0.1)),
+                          color: Colors.white
+                              .withValues(alpha: 0.1)),
                       const SizedBox(height: 12),
                       Text('Нет изображений на сервере',
                           style: TextStyle(
@@ -207,14 +264,14 @@ class _ServerGalleryScreenState extends State<ServerGalleryScreen> {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0x10FFFFFF)),
+          border: Border.all(
+              color: Colors.white.withValues(alpha: 0.08)),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(9),
           child: Image.network(
             url,
             fit: BoxFit.cover,
-            headers: const {},
             loadingBuilder: (ctx, child, progress) {
               if (progress == null) return child;
               return Container(
@@ -232,7 +289,8 @@ class _ServerGalleryScreenState extends State<ServerGalleryScreen> {
             errorBuilder: (ctx, err, stack) => Container(
               color: Colors.white.withValues(alpha: 0.02),
               child: Icon(Icons.broken_image_outlined,
-                  size: 20, color: Colors.white.withValues(alpha: 0.1)),
+                  size: 20,
+                  color: Colors.white.withValues(alpha: 0.1)),
             ),
           ),
         ),
@@ -251,7 +309,6 @@ class _ServerGalleryScreenState extends State<ServerGalleryScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Картинка
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: InteractiveViewer(
@@ -274,14 +331,15 @@ class _ServerGalleryScreenState extends State<ServerGalleryScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            // Имя файла
+            // Панель действий
             Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: const Color(0xFF111114),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0x10FFFFFF)),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.08)),
               ),
               child: Row(
                 children: [
@@ -297,16 +355,42 @@ class _ServerGalleryScreenState extends State<ServerGalleryScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => Navigator.pop(ctx),
-                    child: const Icon(Icons.close_rounded,
-                        color: GlassTheme.textTertiary, size: 18),
-                  ),
+                  _actionIcon(Icons.save_alt_rounded,
+                      const Color(0xFF30D158), () {
+                        Navigator.pop(ctx);
+                        _saveImage(img);
+                      }),
+                  const SizedBox(width: 6),
+                  _actionIcon(Icons.share_rounded,
+                      const Color(0xFF5AC8FA), () {
+                        Navigator.pop(ctx);
+                        _shareImage(img);
+                      }),
+                  const SizedBox(width: 6),
+                  _actionIcon(Icons.close_rounded,
+                      GlassTheme.textTertiary, () {
+                        Navigator.pop(ctx);
+                      }),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _actionIcon(IconData icon, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Icon(icon, size: 18, color: color),
       ),
     );
   }
