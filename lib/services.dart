@@ -8,6 +8,27 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 
+/// HTTP-запрос с retry и exponential backoff
+Future<http.Response> httpGetWithRetry(
+    String url, {
+      int maxRetries = 3,
+      Duration timeout = const Duration(seconds: 10),
+    }) async {
+  for (int i = 0; i < maxRetries; i++) {
+    try {
+      final resp = await http
+          .get(Uri.parse(url))
+          .timeout(timeout);
+      if (resp.statusCode == 200) return resp;
+      if (i == maxRetries - 1) return resp;
+    } catch (e) {
+      if (i == maxRetries - 1) rethrow;
+      await Future.delayed(Duration(seconds: (i + 1) * 2));
+    }
+  }
+  throw Exception('Не удалось подключиться к $url');
+}
+
 // ─── PromptData ───────────────────────────────────────────────
 
 class PromptData {
@@ -167,6 +188,44 @@ class ComfyUIService {
 
   String get activeWorkflowId => _activeWorkflowId;
 
+  /// Переключить чекпоинт в текущем воркфлоу
+  void setCheckpointInWorkflow(String checkpointName) {
+    if (_workflowRaw == null) return;
+    Map<String, dynamic> wf = jsonDecode(_workflowRaw!);
+    wf.forEach((id, node) {
+      if (node is! Map) return;
+      if (node['class_type'] == 'CheckpointLoaderSimple') {
+        node['inputs']['ckpt_name'] = checkpointName;
+      }
+    });
+    _workflowRaw = jsonEncode(wf);
+  }
+
+  /// Переключить VAE в текущем воркфлоу
+  void setVaeInWorkflow(String vaeName) {
+    if (_workflowRaw == null) return;
+    Map<String, dynamic> wf = jsonDecode(_workflowRaw!);
+    wf.forEach((id, node) {
+      if (node is! Map) return;
+      if (node['class_type'] == 'VAELoader') {
+        node['inputs']['vae_name'] = vaeName;
+      }
+    });
+    _workflowRaw = jsonEncode(wf);
+  }
+
+  /// Получить текущий чекпоинт из воркфлоу
+  String? getCurrentCheckpoint() {
+    if (_workflowRaw == null) return null;
+    final wf = jsonDecode(_workflowRaw!) as Map<String, dynamic>;
+    for (final node in wf.values) {
+      if (node is Map && node['class_type'] == 'CheckpointLoaderSimple') {
+        return node['inputs']?['ckpt_name']?.toString();
+      }
+    }
+    return null;
+  }
+
   // ── Загрузка воркфлоу ────────────────────────────────────
 
   Future<void> loadWorkflow() async {
@@ -218,11 +277,34 @@ class ComfyUIService {
       final r = await http
           .get(Uri.parse('$serverUrl/system_stats'))
           .timeout(const Duration(seconds: 5));
-      return r.statusCode == 200;
+      if (r.statusCode == 200) {
+        // Кэшируем последние stats для offline просмотра
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('cached_system_stats', r.body);
+        return true;
+      }
+      return false;
+    } on SocketException {
+      return false;
+    } on HttpException {
+      return false;
     } catch (_) {
       return false;
     }
   }
+
+  /// Получить кэшированные stats (для offline)
+  static Future<Map<String, dynamic>> getCachedStats() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('cached_system_stats');
+    if (raw != null) {
+      try {
+        return jsonDecode(raw);
+      } catch (_) {}
+    }
+    return {};
+  }
+
 
   String getNodeDisplayName(String nodeId) {
     final name = nodeNames[nodeId];
@@ -777,19 +859,18 @@ class ComfyUIService {
       final resp = await http
           .get(Uri.parse('$serverUrl/system_stats'))
           .timeout(const Duration(seconds: 10));
-      if (resp.statusCode == 200) return jsonDecode(resp.body);
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        // Кэшируем
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('cached_system_stats', resp.body);
+        return data;
+      }
+    } on SocketException {
+      // Offline — возвращаем кэш
+      return await getCachedStats();
     } catch (_) {}
-    return {};
-  }
-
-  Future<Map<String, dynamic>> getQueue() async {
-    try {
-      final resp = await http
-          .get(Uri.parse('$serverUrl/queue'))
-          .timeout(const Duration(seconds: 10));
-      if (resp.statusCode == 200) return jsonDecode(resp.body);
-    } catch (_) {}
-    return {};
+    return await getCachedStats();
   }
 
   Future<Map<String, dynamic>> getHistory({int maxItems = 20}) async {

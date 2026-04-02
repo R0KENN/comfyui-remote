@@ -20,6 +20,7 @@ import 'bottom_nav.dart';
 import 'ai_prompt_dialog.dart';
 import '../server_gallery_screen.dart';
 import '../model_picker_screen.dart';
+import '../preset_manager.dart';
 
 class _SectionConfig {
   final String key;
@@ -99,6 +100,125 @@ class _HomeScreenState extends State<HomeScreen>
         HomeStateMixin<HomeScreen>, GenerationControllerMixin<HomeScreen> {
 
   StreamSubscription? _bgSub;
+
+  void _showPresetsSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        builder: (_, scrollCtrl) => _PresetSheet(
+          scrollController: scrollCtrl,
+          onSave: () async {
+            final nameCtrl = TextEditingController();
+            final name = await showDialog<String>(
+              context: context,
+              builder: (dCtx) => AlertDialog(
+                backgroundColor: const Color(0xFF0A0A0C),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                title: const Text('Сохранить пресет',
+                    style: TextStyle(
+                        color: GlassTheme.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600)),
+                content: TextField(
+                  controller: nameCtrl,
+                  autofocus: true,
+                  style: const TextStyle(
+                      color: GlassTheme.textPrimary, fontSize: 14),
+                  decoration:
+                  GlassTheme.glassInput(hint: 'Название пресета'),
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(dCtx),
+                      child: Text('Отмена',
+                          style: TextStyle(
+                              color:
+                              Colors.white.withValues(alpha: 0.4)))),
+                  TextButton(
+                      onPressed: () =>
+                          Navigator.pop(dCtx, nameCtrl.text.trim()),
+                      child: const Text('Сохранить',
+                          style: TextStyle(color: Color(0xFFFFD60A)))),
+                ],
+              ),
+            );
+            if (name == null || name.isEmpty) return;
+
+            final loraStates = <Map<String, dynamic>>[];
+            for (final group in loraGroups) {
+              for (final lora in group.loras) {
+                loraStates.add({
+                  'nodeId': lora.nodeId,
+                  'name': lora.name,
+                  'enabled': lora.enabled,
+                  'strength': lora.strength,
+                });
+              }
+            }
+
+            await PresetStorage.add(Preset(
+              name: name,
+              created: DateTime.now(),
+              prompts: getPromptData(),
+              width: width,
+              height: height,
+              seed: seedCtrl.text,
+              nodeEnabled: Map<String, bool>.from(service.nodeEnabled),
+              pinnedNegTags: Map<String, List<String>>.from(
+                  pinnedNegTags.map((k, v) => MapEntry(k, List<String>.from(v)))),
+              loraStates: loraStates,
+            ));
+            if (ctx.mounted) Navigator.pop(ctx);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text('Пресет "$name" сохранён'),
+                    backgroundColor: const Color(0xFF30D158)),
+              );
+            }
+          },
+          onApply: (preset) {
+            setState(() {
+              loadFromTemplate(PromptTemplate(
+                  name: preset.name, data: preset.prompts));
+              width = preset.width;
+              height = preset.height;
+              seedCtrl.text = preset.seed;
+              for (final e in preset.nodeEnabled.entries) {
+                service.nodeEnabled[e.key] = e.value;
+              }
+              for (final e in preset.pinnedNegTags.entries) {
+                pinnedNegTags[e.key] = List<String>.from(e.value);
+              }
+              for (final ls in preset.loraStates) {
+                for (final group in loraGroups) {
+                  for (final lora in group.loras) {
+                    if (lora.name == ls['name'] &&
+                        lora.nodeId == ls['nodeId']) {
+                      lora.enabled = ls['enabled'] ?? false;
+                      lora.strength = (ls['strength'] ?? 1.0).toDouble();
+                    }
+                  }
+                }
+              }
+            });
+            Navigator.pop(ctx);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text('Пресет "${preset.name}" применён'),
+                  backgroundColor: const Color(0xFF30D158)),
+            );
+          },
+        ),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -870,6 +990,8 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 );
                 if (name != null && name.isNotEmpty) await _saveTemplate(name);
+              case 'presets':
+                _showPresetsSheet();
               case 'load_template':
                 _showTemplates();
               case 'copy_to_refiner':
@@ -891,6 +1013,7 @@ class _HomeScreenState extends State<HomeScreen>
             _menuItem(Icons.content_copy_rounded, 'Скопировать в Refiner', 'copy_to_refiner'),
             _menuItem(Icons.power_settings_new_rounded, 'Wake-on-LAN', 'wol'),
             _menuItem(Icons.model_training, 'Модели сервера', 'models'),
+            _menuItem(Icons.tune_rounded, 'Пресеты', 'presets'),
           ],
         ),
       ],
@@ -1045,6 +1168,148 @@ class _AnimatedSectionState extends State<_AnimatedSection>
         child: widget.child,
       ),
     );
+  }
+  class _PresetSheet extends StatefulWidget {
+  final ScrollController scrollController;
+  final VoidCallback onSave;
+  final void Function(Preset) onApply;
+
+  const _PresetSheet({
+  required this.scrollController,
+  required this.onSave,
+  required this.onApply,
+  });
+
+  @override
+  State<_PresetSheet> createState() => _PresetSheetState();
+  }
+
+  class _PresetSheetState extends State<_PresetSheet> {
+  List<Preset> _presets = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+  super.initState();
+  _load();
+  }
+
+  Future<void> _load() async {
+  final list = await PresetStorage.load();
+  if (mounted) setState(() { _presets = list; _loading = false; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+  return Container(
+  decoration: const BoxDecoration(
+  color: Color(0xFF0A0A0C),
+  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  ),
+  child: Column(
+  children: [
+  const SizedBox(height: 12),
+  Container(
+  width: 36, height: 4,
+  decoration: BoxDecoration(
+  color: Colors.white.withValues(alpha: 0.12),
+  borderRadius: BorderRadius.circular(2),
+  ),
+  ),
+  Padding(
+  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+  child: Row(
+  children: [
+  const Icon(Icons.tune_rounded,
+  color: Color(0xFF5AC8FA), size: 20),
+  const SizedBox(width: 10),
+  const Text('Пресеты',
+  style: TextStyle(
+  color: GlassTheme.textPrimary,
+  fontSize: 17,
+  fontWeight: FontWeight.w600)),
+  const Spacer(),
+  GestureDetector(
+  onTap: widget.onSave,
+  child: Container(
+  padding: const EdgeInsets.symmetric(
+  horizontal: 12, vertical: 6),
+  decoration: BoxDecoration(
+  color: const Color(0xFFFFD60A).withValues(alpha: 0.1),
+  borderRadius: BorderRadius.circular(10),
+  border: Border.all(
+  color: const Color(0xFFFFD60A)
+      .withValues(alpha: 0.25)),
+  ),
+  child: const Row(
+  mainAxisSize: MainAxisSize.min,
+  children: [
+  Icon(Icons.add_rounded,
+  size: 14, color: Color(0xFFFFD60A)),
+  SizedBox(width: 4),
+  Text('Сохранить',
+  style: TextStyle(
+  fontSize: 12,
+  color: Color(0xFFFFD60A),
+  fontWeight: FontWeight.w600)),
+  ],
+  ),
+  ),
+  ),
+  ],
+  ),
+  ),
+  Expanded(
+  child: _loading
+  ? const Center(
+  child:
+  CircularProgressIndicator(color: Color(0xFF5AC8FA)))
+      : _presets.isEmpty
+  ? Center(
+  child: Text('Нет пресетов',
+  style: TextStyle(
+  color: Colors.white.withValues(alpha: 0.2),
+  fontSize: 14)),
+  )
+      : ListView.builder(
+  controller: widget.scrollController,
+  padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+  itemCount: _presets.length,
+  itemBuilder: (_, i) {
+  final p = _presets[i];
+  return GlassTheme.card(
+  margin: const EdgeInsets.only(bottom: 6),
+  padding: EdgeInsets.zero,
+  child: ListTile(
+  onTap: () => widget.onApply(p),
+  title: Text(p.name,
+  style: const TextStyle(
+  color: GlassTheme.textPrimary,
+  fontSize: 14,
+  fontWeight: FontWeight.w600)),
+  subtitle: Text(
+  '${p.width}×${p.height} • ${p.created.day}.${p.created.month}.${p.created.year}',
+  style: TextStyle(
+  color: Colors.grey[600], fontSize: 11),
+  ),
+  trailing: GestureDetector(
+  onTap: () async {
+  await PresetStorage.remove(i);
+  _load();
+  },
+  child: Icon(Icons.delete_outline,
+  size: 18,
+  color: Colors.red.withValues(alpha: 0.5)),
+  ),
+  ),
+  );
+  },
+  ),
+  ),
+  ],
+  ),
+  );
+  }
   }
 }
 

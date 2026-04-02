@@ -342,68 +342,102 @@ class _ModelPickerScreenState extends State<ModelPickerScreen>
   }
 
   Widget _buildModelItem(String name, Color color, int index) {
-    // Извлекаем короткое имя (без пути)
     final shortName = name.contains('/') || name.contains('\\')
         ? name.split(RegExp(r'[/\\]')).last
         : name;
     final folder = name.contains('/') || name.contains('\\')
         ? name.substring(0, name.length - shortName.length)
         : '';
+    final isActiveCheckpoint =
+        _selectedTab == 0 && name == widget.service.getCurrentCheckpoint();
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0x08FFFFFF)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 28,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(2),
+    return GestureDetector(
+      onTap: () {
+        if (_selectedTab == 0) {
+          // Переключить чекпоинт
+          widget.service.setCheckpointInWorkflow(name);
+          setState(() {});
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Чекпоинт: $shortName'),
+              backgroundColor: const Color(0xFF30D158),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(shortName,
-                  style: const TextStyle(
-                    color: GlassTheme.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: -0.2,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (folder.isNotEmpty)
-                  Text(folder,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      fontSize: 10,
-                      letterSpacing: -0.2,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
+          );
+        } else if (_selectedTab == 2) {
+          widget.service.setVaeInWorkflow(name);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('VAE: $shortName'),
+              backgroundColor: const Color(0xFF30D158),
             ),
+          );
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: isActiveCheckpoint
+              ? color.withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.02),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isActiveCheckpoint
+                ? color.withValues(alpha: 0.25)
+                : const Color(0x08FFFFFF),
           ),
-          Text('${index + 1}',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.1),
-              fontSize: 10,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 4,
+              height: 28,
+              decoration: BoxDecoration(
+                color: isActiveCheckpoint
+                    ? color
+                    : color.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(shortName,
+                      style: TextStyle(
+                        color: isActiveCheckpoint
+                            ? color
+                            : GlassTheme.textPrimary,
+                        fontSize: 12,
+                        fontWeight: isActiveCheckpoint
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        letterSpacing: -0.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                  if (folder.isNotEmpty)
+                    Text(folder,
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            fontSize: 10,
+                            letterSpacing: -0.2),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+            if (isActiveCheckpoint)
+              const Icon(Icons.check_circle_rounded,
+                  size: 16, color: Color(0xFF30D158)),
+            const SizedBox(width: 4),
+            Text('${index + 1}',
+                style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    fontSize: 10)),
+          ],
+        ),
       ),
     );
   }
-}

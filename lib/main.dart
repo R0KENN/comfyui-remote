@@ -1,11 +1,15 @@
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:path_provider/path_provider.dart';
 import 'app.dart';
 import 'background_service.dart';
 
 final FlutterLocalNotificationsPlugin notifications =
 FlutterLocalNotificationsPlugin();
 
+/// Обычное уведомление (текст)
 Future<void> showNotification(String title, String body) async {
   const details = AndroidNotificationDetails(
     'comfyui_channel',
@@ -16,6 +20,38 @@ Future<void> showNotification(String title, String body) async {
   );
   await notifications.show(
       0, title, body, const NotificationDetails(android: details));
+}
+
+/// Уведомление с превью-картинкой (BigPicture)
+Future<void> showImageNotification(
+    String title, String body, Uint8List imageBytes) async {
+  try {
+    // Сохраняем во временный файл
+    final dir = await getTemporaryDirectory();
+    final file = File(
+        '${dir.path}/notif_preview_${DateTime.now().millisecondsSinceEpoch}.png');
+    await file.writeAsBytes(imageBytes);
+
+    final details = AndroidNotificationDetails(
+      'comfyui_channel',
+      'Генерация',
+      channelDescription: 'Уведомления о генерации',
+      importance: Importance.high,
+      priority: Priority.high,
+      styleInformation: BigPictureStyleInformation(
+        FilePathAndroidBitmap(file.path),
+        contentTitle: title,
+        summaryText: body,
+        hideExpandedLargeIcon: false,
+      ),
+      largeIcon: FilePathAndroidBitmap(file.path),
+    );
+    await notifications.show(
+        0, title, body, NotificationDetails(android: details));
+  } catch (_) {
+    // Фоллбэк — обычное уведомление
+    await showNotification(title, body);
+  }
 }
 
 Future<void> main() async {

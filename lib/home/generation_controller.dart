@@ -6,9 +6,10 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../gallery_screen.dart';
 import '../history_screen.dart';
-import '../main.dart' show showNotification;
+import '../main.dart' show showNotification, showImageNotification;
 import '../background_service.dart';
 import 'home_state.dart';
+import 'dart:io';
 
 mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeStateMixin<T> {
   Timer? _reconnectTimer;
@@ -277,12 +278,15 @@ mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeState
       });
 
       HapticFeedback.heavyImpact();
-      await showNotification(
-        'Генерация завершена',
-        images.isNotEmpty
-            ? 'Готово за $time (сид: $usedSeed)'
-            : 'Нет результата',
-      );
+      if (images.isNotEmpty) {
+        await showImageNotification(
+          'Генерация завершена',
+          'Готово за $time (сид: $usedSeed)',
+          images.first,
+        );
+      } else {
+        await showNotification('Генерация завершена', 'Нет результата');
+      }
 
       if (images.isNotEmpty && mounted) {
         setState(() => currentTab = 3);
@@ -290,14 +294,26 @@ mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeState
     } catch (e) {
       stopTimer();
       _stopTimeout();
+
+      String errorMsg;
+      if (e is SocketException) {
+        errorMsg = 'Нет подключения к серверу';
+      } else if (e is TimeoutException) {
+        errorMsg = 'Таймаут подключения';
+      } else if (e is HttpException) {
+        errorMsg = 'HTTP ошибка сервера';
+      } else {
+        errorMsg = '$e';
+      }
+
       setState(() {
-        status = 'Ошибка: $e';
+        status = 'Ошибка: $errorMsg';
         isGenerating = false;
         currentNode = '';
         previewImage = null;
       });
       HapticFeedback.heavyImpact();
-      await showNotification('Ошибка генерации', '$e');
+      await showNotification('Ошибка генерации', errorMsg);
     } finally {
       ws?.sink.close();
       await BackgroundGenerationService.stop();
@@ -486,7 +502,8 @@ mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeState
           });
 
           HapticFeedback.heavyImpact();
-          await showNotification('Генерация завершена', 'Готово за $time');
+          await showImageNotification(
+              'Генерация завершена', 'Готово за $time', images.first);
           if (mounted) {
             setState(() => currentTab = 3);
           }
