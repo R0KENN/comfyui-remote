@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
-
+import 'package:gal/gal.dart';
 /// HTTP-запрос с retry и exponential backoff
 Future<http.Response> httpGetWithRetry(
     String url, {
@@ -501,7 +501,9 @@ class ComfyUIService {
     });
 
     // ── Seed ──
-    final seed = customSeed ?? Random().nextInt(2147483647);
+    final seed = (customSeed == null || customSeed < 0)
+        ? Random().nextInt(2147483647)
+        : customSeed;
     lastSeed = seed;
 
     wf.forEach((id, node) {
@@ -734,13 +736,19 @@ class ComfyUIService {
   }
 
   static Future<String> saveImage(Uint8List imageBytes) async {
-    final dir = await getExternalStorageDirectory() ??
-        await getApplicationDocumentsDirectory();
-    final comfyDir = Directory('${dir.path}/ComfyUI_Remote');
-    if (!await comfyDir.exists()) await comfyDir.create(recursive: true);
+    // Сохраняем во временный файл
+    final dir = await getApplicationDocumentsDirectory();
     final ts = DateTime.now().millisecondsSinceEpoch;
-    final file = File('${comfyDir.path}/comfyui_$ts.png');
+    final file = File('${dir.path}/comfyui_$ts.png');
     await file.writeAsBytes(imageBytes);
+
+    // Копируем в галерею через MediaStore
+    try {
+      await Gal.putImage(file.path, album: 'ComfyUI Remote');
+    } catch (_) {
+      // Фоллбэк: файл всё равно сохранён в app documents
+    }
+
     return file.path;
   }
 

@@ -376,28 +376,7 @@ class _LogsScreenState extends State<LogsScreen>
   }
 
   Widget _pulsingDot(Color color) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.4, end: 1.0),
-      duration: const Duration(milliseconds: 1000),
-      builder: (_, value, child) {
-        return Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: color.withValues(alpha: value),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: value * 0.4),
-                blurRadius: 6,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-        );
-      },
-      onEnd: () {},
-    );
+    return _PulsingDot(color: color);
   }
 
   Widget _iconBtn({
@@ -415,6 +394,60 @@ class _LogsScreenState extends State<LogsScreen>
           child: Icon(icon, color: color, size: 20),
         ),
       ),
+    );
+  }
+}
+
+class _PulsingDot extends StatefulWidget {
+  final Color color;
+  const _PulsingDot({required this.color});
+
+  @override
+  State<_PulsingDot> createState() => _PulsingDotState();
+}
+
+class _PulsingDotState extends State<_PulsingDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+      lowerBound: 0.4,
+      upperBound: 1.0,
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) {
+        return Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: widget.color.withValues(alpha: _ctrl.value),
+            boxShadow: [
+              BoxShadow(
+                color: widget.color.withValues(alpha: _ctrl.value * 0.4),
+                blurRadius: 6,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -20,9 +20,8 @@ class _MonitorScreenState extends State<MonitorScreen>
   bool _loading = true;
   int _pingMs = -1;
 
-  // GPU статистика (история для графиков)
+  // GPU VRAM история для графика
   final List<double> _vramHistory = [];
-  final List<double> _tempHistory = [];
   static const int _maxHistoryPoints = 30;
 
   late AnimationController _animCtrl;
@@ -67,15 +66,6 @@ class _MonitorScreenState extends State<MonitorScreen>
         _vramHistory.add(vramPercent);
         if (_vramHistory.length > _maxHistoryPoints) {
           _vramHistory.removeAt(0);
-        }
-
-        // GPU температура (если доступна)
-        final temp = d['gpu_temperature'] as num?;
-        if (temp != null) {
-          _tempHistory.add(temp.toDouble());
-          if (_tempHistory.length > _maxHistoryPoints) {
-            _tempHistory.removeAt(0);
-          }
         }
       }
 
@@ -191,7 +181,7 @@ class _MonitorScreenState extends State<MonitorScreen>
     );
   }
 
-  // ── GPU card (расширенный) ──
+  // ── GPU card ──
   Widget _buildGpuCard() {
     final devices = _stats['devices'] as List? ?? [];
     if (devices.isEmpty) {
@@ -222,39 +212,16 @@ class _MonitorScreenState extends State<MonitorScreen>
                 (d['torch_vram_free'] ?? 0) / 1024 / 1024 / 1024;
             final torchUsed = torchVramTotal - torchVramFree;
 
-            final gpuTemp = d['gpu_temperature'] as num?;
-            final gpuLoad = d['gpu_utilization'] as num?;
-
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Название GPU
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${d['name'] ?? 'Unknown'}',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14),
-                      ),
-                    ),
-                    if (gpuTemp != null)
-                      _gpuStatChip(
-                        Icons.thermostat_rounded,
-                        '${gpuTemp.toInt()}°C',
-                        _tempColor(gpuTemp.toDouble()),
-                      ),
-                    if (gpuLoad != null) ...[
-                      const SizedBox(width: 6),
-                      _gpuStatChip(
-                        Icons.speed_rounded,
-                        '${gpuLoad.toInt()}%',
-                        _loadColor(gpuLoad.toDouble()),
-                      ),
-                    ],
-                  ],
+                Text(
+                  '${d['name'] ?? 'Unknown'}',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14),
                 ),
                 const SizedBox(height: 2),
                 Text('Тип: ${d['type'] ?? '?'}',
@@ -321,18 +288,6 @@ class _MonitorScreenState extends State<MonitorScreen>
                   ),
                 ],
 
-                // Мини-график температуры
-                if (_tempHistory.length > 2) ...[
-                  const SizedBox(height: 8),
-                  _buildMiniChart(
-                    'Температура',
-                    _tempHistory,
-                    Colors.orange,
-                    suffix: '°C',
-                    maxVal: 100,
-                  ),
-                ],
-
                 const SizedBox(height: 8),
               ],
             );
@@ -340,39 +295,6 @@ class _MonitorScreenState extends State<MonitorScreen>
         ],
       ),
     );
-  }
-
-  Widget _gpuStatChip(IconData icon, String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(text,
-              style: TextStyle(
-                  color: color, fontSize: 11, fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
-
-  Color _tempColor(double temp) {
-    if (temp < 60) return Colors.green;
-    if (temp < 75) return Colors.orange;
-    return Colors.red;
-  }
-
-  Color _loadColor(double load) {
-    if (load < 50) return Colors.green;
-    if (load < 80) return Colors.orange;
-    return Colors.red;
   }
 
   Color _vramColor(double percent) {
@@ -799,7 +721,8 @@ class _SparklinePainter extends CustomPainter {
 
     for (int i = 0; i < data.length; i++) {
       final x = i * stepX;
-      final y = size.height - (data[i] / maxValue * size.height).clamp(0, size.height);
+      final y = size.height -
+          (data[i] / maxValue * size.height).clamp(0, size.height);
 
       if (i == 0) {
         path.moveTo(x, y);

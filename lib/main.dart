@@ -26,10 +26,9 @@ Future<void> showNotification(String title, String body) async {
 Future<void> showImageNotification(
     String title, String body, Uint8List imageBytes) async {
   try {
-    // Сохраняем во временный файл
     final dir = await getTemporaryDirectory();
-    final file = File(
-        '${dir.path}/notif_preview_${DateTime.now().millisecondsSinceEpoch}.png');
+    // Фиксированное имя — всегда перезаписывается
+    final file = File('${dir.path}/notif_preview.png');
     await file.writeAsBytes(imageBytes);
 
     final details = AndroidNotificationDetails(
@@ -49,10 +48,10 @@ Future<void> showImageNotification(
     await notifications.show(
         0, title, body, NotificationDetails(android: details));
   } catch (_) {
-    // Фоллбэк — обычное уведомление
     await showNotification(title, body);
   }
 }
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
