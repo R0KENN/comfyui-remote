@@ -1,3 +1,5 @@
+// lib/glass_theme.dart
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
@@ -22,102 +24,57 @@ class GlassTheme {
   static const Color accentCyan = Color(0xFF64D2FF);
 
   // ── Liquid Glass параметры ──
-  static const double _defaultBlur = 24.0;
-  static const double _defaultTintOpacity = 0.08;
-  static const double _defaultBorderOpacity = 0.12;
-  static const double _specularOpacity = 0.06;
+  static const double _blurSigma = 32.0;
+  static const double _tintOpacity = 0.045;
+  static const double _borderOpacity = 0.09;
 
   // ── Фон scaffold ──
   static BoxDecoration get scaffoldDecoration => const BoxDecoration(
     color: Color(0xFF000000),
   );
 
-  // ── Liquid Glass карточка ──
+  // ══════════════════════════════════════════
+  //  LIQUID GLASS CARD — плоское матовое стекло
+  // ══════════════════════════════════════════
   static Widget card({
     required Widget child,
     Color? borderColor,
-    double blur = _defaultBlur,
+    double blur = _blurSigma,
     EdgeInsetsGeometry margin =
     const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     EdgeInsetsGeometry padding = const EdgeInsets.all(16),
     double borderRadius = 22,
-    double tintOpacity = _defaultTintOpacity,
+    double tintOpacity = _tintOpacity,
     bool highlight = false,
   }) {
-    return Container(
-      margin: margin,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(
-          color: borderColor ??
-              (highlight
-                  ? Colors.white.withValues(alpha: 0.2)
-                  : Colors.white.withValues(alpha: _defaultBorderOpacity)),
-          width: 0.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-          if (highlight && borderColor != null)
-            BoxShadow(
-              color: borderColor.withValues(alpha: 0.08),
-              blurRadius: 16,
-              spreadRadius: -2,
-            ),
-        ],
-      ),
+    return Padding(
+      padding: margin,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
           child: Container(
             decoration: BoxDecoration(
+              // Плоский однородный фон — без градиентов
+              color: Colors.white.withValues(alpha: tintOpacity),
               borderRadius: BorderRadius.circular(borderRadius),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withValues(alpha: tintOpacity + 0.04),
-                  Colors.white.withValues(alpha: tintOpacity * 0.3),
-                ],
+              border: Border.all(
+                color: borderColor?.withValues(alpha: 0.25) ??
+                    Colors.white.withValues(alpha: _borderOpacity),
+                width: 0.5,
               ),
             ),
-            child: Stack(
-              children: [
-                // Specular highlight — блик сверху
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 40,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(borderRadius)),
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.white.withValues(alpha: _specularOpacity),
-                          Colors.white.withValues(alpha: 0.0),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                Padding(padding: padding, child: child),
-              ],
-            ),
+            padding: padding,
+            child: child,
           ),
         ),
       ),
     );
   }
 
-  // ── Маленькая стеклянная карточка ──
+  // ══════════════════════════════════════════
+  //  МИНИ-КАРТОЧКА
+  // ══════════════════════════════════════════
   static Widget miniCard({
     required Widget child,
     EdgeInsetsGeometry padding = const EdgeInsets.all(12),
@@ -125,28 +82,33 @@ class GlassTheme {
     double borderRadius = 14,
     Color? borderColor,
   }) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          margin: margin,
-          padding: padding,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(borderRadius),
-            color: Colors.white.withValues(alpha: 0.06),
-            border: Border.all(
-              color: borderColor ?? Colors.white.withValues(alpha: 0.1),
-              width: 0.5,
+    return Padding(
+      padding: margin,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            padding: padding,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.035),
+              borderRadius: BorderRadius.circular(borderRadius),
+              border: Border.all(
+                color: borderColor ??
+                    Colors.white.withValues(alpha: 0.07),
+                width: 0.5,
+              ),
             ),
+            child: child,
           ),
-          child: child,
         ),
       ),
     );
   }
 
-  // ── Заголовок секции ──
+  // ══════════════════════════════════════════
+  //  ЗАГОЛОВОК СЕКЦИИ
+  // ══════════════════════════════════════════
   static Widget sectionTitle(
       IconData icon,
       Color iconColor,
@@ -159,10 +121,10 @@ class GlassTheme {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: iconColor.withValues(alpha: 0.12),
+            color: iconColor.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: iconColor.withValues(alpha: 0.18),
+              color: iconColor.withValues(alpha: 0.15),
               width: 0.5,
             ),
           ),
@@ -180,59 +142,62 @@ class GlassTheme {
             ),
           ),
         ),
-        ?trailing,
+        if (trailing != null) trailing,
       ],
     );
   }
 
-  // ── Статус-бейдж ──
+  // ══════════════════════════════════════════
+  //  СТАТУС-БЕЙДЖ
+  // ══════════════════════════════════════════
   static Widget statusBadge(String text, Color color, {bool dot = true}) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withValues(alpha: 0.2)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (dot) ...[
-                Container(
-                  width: 5,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: color,
-                    boxShadow: [
-                      BoxShadow(
-                          color: color.withValues(alpha: 0.6), blurRadius: 6),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 6),
-              ],
-              Text(
-                text,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: -0.2,
-                ),
-              ),
-            ],
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: color.withValues(alpha: 0.18),
+          width: 0.5,
         ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (dot) ...[
+            Container(
+              width: 5,
+              height: 5,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.5),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              letterSpacing: -0.2,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // ── Анимация появления ──
+  // ══════════════════════════════════════════
+  //  АНИМАЦИЯ ПОЯВЛЕНИЯ
+  // ══════════════════════════════════════════
   static Widget fadeSlideIn({
     required Widget child,
     required int index,
@@ -258,9 +223,11 @@ class GlassTheme {
     );
   }
 
-  // ── Прогресс-бар ──
+  // ══════════════════════════════════════════
+  //  ПРОГРЕСС-БАР
+  // ══════════════════════════════════════════
   static Widget progressBar(double percent,
-      {Color? color, double height = 4}) {
+      {Color? color, double height = 3}) {
     final barColor = color ??
         (percent > 90
             ? accentRed
@@ -270,18 +237,14 @@ class GlassTheme {
     return Column(
       children: [
         const SizedBox(height: 6),
-        Container(
-          height: height,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(height / 2),
-            color: Colors.white.withValues(alpha: 0.06),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(height / 2),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(height / 2),
+          child: SizedBox(
+            height: height,
             child: LinearProgressIndicator(
               value: percent / 100,
-              backgroundColor: Colors.transparent,
-              valueColor: AlwaysStoppedAnimation(barColor),
+              backgroundColor: Colors.white.withValues(alpha: 0.04),
+              valueColor: AlwaysStoppedAnimation(barColor.withValues(alpha: 0.7)),
             ),
           ),
         ),
@@ -291,21 +254,29 @@ class GlassTheme {
           child: Text(
             '${percent.toStringAsFixed(1)}%',
             style: const TextStyle(
-                color: textTertiary, fontSize: 10, letterSpacing: -0.2),
+              color: textTertiary,
+              fontSize: 10,
+              letterSpacing: -0.2,
+            ),
           ),
         ),
       ],
     );
   }
 
-  // ── Чип / тег ──
+  // ══════════════════════════════════════════
+  //  ЧИП / ТЕГ
+  // ══════════════════════════════════════════
   static Widget chip(String text, Color color, {IconData? icon}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: color.withValues(alpha: 0.15),
+          width: 0.5,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -328,7 +299,9 @@ class GlassTheme {
     );
   }
 
-  // ── Glass AppBar ──
+  // ══════════════════════════════════════════
+  //  GLASS APPBAR
+  // ══════════════════════════════════════════
   static AppBar appBar(String title,
       {List<Widget>? actions, Widget? leading}) {
     return AppBar(
@@ -349,7 +322,9 @@ class GlassTheme {
     );
   }
 
-  // ── Стеклянное текстовое поле ──
+  // ══════════════════════════════════════════
+  //  GLASS INPUT
+  // ══════════════════════════════════════════
   static InputDecoration glassInput({
     String? label,
     String? hint,
@@ -360,30 +335,39 @@ class GlassTheme {
     return InputDecoration(
       labelText: label,
       labelStyle: const TextStyle(
-          fontSize: 12, color: textTertiary, letterSpacing: -0.2),
+        fontSize: 12,
+        color: textTertiary,
+        letterSpacing: -0.2,
+      ),
       hintText: hint,
       hintStyle: TextStyle(
-          fontSize: 11, color: Colors.white.withValues(alpha: 0.12)),
+        fontSize: 11,
+        color: Colors.white.withValues(alpha: 0.10),
+      ),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       enabledBorder: OutlineInputBorder(
-        borderSide:
-        BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        borderSide: BorderSide(
+          color: Colors.white.withValues(alpha: 0.07),
+        ),
         borderRadius: BorderRadius.circular(12),
       ),
       focusedBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: accentColor.withValues(alpha: 0.4)),
+        borderSide: BorderSide(
+          color: accentColor.withValues(alpha: 0.35),
+        ),
         borderRadius: BorderRadius.circular(12),
       ),
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.04),
+      fillColor: Colors.white.withValues(alpha: 0.025),
       isDense: isDense,
-      contentPadding:
-      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       suffixIcon: suffixIcon,
     );
   }
 
-  // ── Стеклянная кнопка ──
+  // ══════════════════════════════════════════
+  //  GLASS BUTTON
+  // ══════════════════════════════════════════
   static Widget glassButton({
     required String text,
     required VoidCallback? onTap,
@@ -398,25 +382,20 @@ class GlassTheme {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             height: height,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
-              gradient: isEnabled
-                  ? LinearGradient(colors: [
-                color.withValues(alpha: 0.22),
-                color.withValues(alpha: 0.1),
-              ])
-                  : null,
-              color:
-              isEnabled ? null : Colors.white.withValues(alpha: 0.03),
+              color: isEnabled
+                  ? color.withValues(alpha: 0.12)
+                  : Colors.white.withValues(alpha: 0.025),
               border: Border.all(
                 color: isEnabled
-                    ? color.withValues(alpha: 0.3)
-                    : Colors.white.withValues(alpha: 0.06),
+                    ? color.withValues(alpha: 0.22)
+                    : Colors.white.withValues(alpha: 0.05),
                 width: 0.5,
               ),
             ),
