@@ -19,7 +19,7 @@ import 'bottom_bar.dart';
 import 'bottom_nav.dart';
 import 'ai_prompt_dialog.dart';
 import '../server_gallery_screen.dart';
-import '../model_picker_screen.dart';
+import '../model_manager_screen.dart';
 import '../preset_manager.dart';
 
 class _SectionConfig {
@@ -1000,7 +1000,7 @@ class _HomeScreenState extends State<HomeScreen>
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => ModelPickerScreen(service: service),
+                    builder: (_) => ModelManagerScreen(service: service),
                   ),
                 );
               case 'wol':
