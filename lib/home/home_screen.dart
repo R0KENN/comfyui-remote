@@ -864,15 +864,6 @@ class _HomeScreenState extends State<HomeScreen>
       elevation: 0,
       title: Row(
         children: [
-          const Text('ComfyGo',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 20,
-              color: GlassTheme.textPrimary,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(width: 10),
           GestureDetector(
             onTap: _selectWorkflow,
             child: Container(
