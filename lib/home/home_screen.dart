@@ -346,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen>
       );
     }
 
-    if (!mounted) return;  // <── ДОБАВЬ
+    if (!mounted) return;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('pending_prompt_id');
     await prefs.remove('pending_server_url');
