@@ -1,3 +1,5 @@
+// lib/home/generation_controller.dart
+
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -7,11 +9,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../gallery_screen.dart';
 import '../history_screen.dart';
 import '../background_service.dart';
+import '../seed_storage.dart';
+import '../sounds.dart';
 import 'home_state.dart';
 import 'dart:io';
-import '../main.dart' show showNotification, showImageNotification, showProgressNotification, dismissProgressNotification;
+import '../main.dart'
+    show
+    showNotification,
+    showImageNotification,
+    showProgressNotification,
+    dismissProgressNotification;
 
-mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeStateMixin<T> {
+mixin GenerationControllerMixin<T extends StatefulWidget>
+on State<T>, HomeStateMixin<T> {
   Timer? _reconnectTimer;
   Timer? _timeoutTimer;
   static const _timeoutMinutes = 10;
@@ -83,9 +93,13 @@ mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeState
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape:
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Сервер не отвечает',
-            style: TextStyle(color: Color(0xFFF0F0F0), fontSize: 16, fontWeight: FontWeight.w600)),
+            style: TextStyle(
+                color: Color(0xFFF0F0F0),
+                fontSize: 16,
+                fontWeight: FontWeight.w600)),
         content: Text(
             'Генерация длится уже ${fmtTime(elapsed)}. Сервер может быть завис.',
             style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 14)),
@@ -113,10 +127,8 @@ mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeState
 
   // ===================== WEBSOCKET С ПРЕВЬЮ =====================
 
-  /// Обработка сообщений WebSocket — текст (JSON) и бинарные (preview)
   void _handleWsMessage(dynamic msg) {
     if (msg is String) {
-      // JSON-сообщение
       try {
         final data = jsonDecode(msg);
         if (data['type'] == 'progress') {
@@ -126,7 +138,6 @@ mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeState
             progress = v / m;
             status = 'Шаг $v / $m';
           });
-          // Прогресс в шторку
           showProgressNotification(
             title: 'Генерация...',
             body: 'Шаг $v / $m  •  ${fmtTime(elapsed)}',
@@ -142,9 +153,6 @@ mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeState
         }
       } catch (_) {}
     } else if (msg is List<int>) {
-      // Бинарное сообщение — preview image
-      // ComfyUI шлёт: первые 8 байт — заголовок (тип + формат),
-      // остальное — JPEG/PNG данные
       if (msg.length > 8) {
         final imageData = Uint8List.fromList(msg.sublist(8));
         if (imageData.length > 100) {
@@ -191,9 +199,94 @@ mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeState
     }
   }
 
+  // ===================== ОБРАБОТКА ЗАВЕРШЕНИЯ =====================
+
+  Future<void> _onSuccess({
+    required List<Uint8List> images,
+    required int usedSeed,
+    required String time,
+    required String dateStr,
+    required String timeStr,
+  }) async {
+    // Сохраняем в историю
+    if (images.isNotEmpty) {
+      final imagePaths = await HistoryStorage.saveImages(images);
+      final historyEntry = HistoryEntry(
+        imagePaths: imagePaths,
+        seed: usedSeed,
+        date: dateStr,
+        time: timeStr,
+        generationTime: time,
+        promptPreview: zimageBaseCtrl.text.isNotEmpty
+            ? zimageBaseCtrl.text.substring(
+            0,
+            zimageBaseCtrl.text.length > 100
+                ? 100
+                : zimageBaseCtrl.text.length)
+            : 'Без промпта',
+      );
+      await HistoryStorage.add(historyEntry);
+
+      // Автосохранение сида
+      await SeedStorage.add(SavedSeed(
+        seed: usedSeed,
+        date: dateStr,
+        time: timeStr,
+        promptPreview: zimageBaseCtrl.text.isNotEmpty
+            ? zimageBaseCtrl.text.substring(
+            0,
+            zimageBaseCtrl.text.length > 60
+                ? 60
+                : zimageBaseCtrl.text.length)
+            : '',
+        generationTime: time,
+      ));
+    }
+
+    final genInfo =
+    GenerationInfo(seed: usedSeed, time: timeStr, date: dateStr);
+
+    setState(() {
+      lastImages = images;
+      lastTime = time;
+      lastInfo = genInfo;
+      status = images.isNotEmpty
+          ? 'Готово за $time! Сид: $usedSeed'
+          : 'Нет результата';
+      isGenerating = false;
+      progress = 1.0;
+      currentNode = '';
+      previewImage = null;
+    });
+
+    // Haptic feedback
+    HapticFeedback.heavyImpact();
+
+    // Звук завершения
+    await AppSounds.playGenerationComplete();
+
+    // Уведомление
+    if (images.isNotEmpty) {
+      await showImageNotification(
+        'Генерация завершена',
+        'Готово за $time (сид: $usedSeed)',
+        images.first,
+      );
+    } else {
+      await showNotification('Генерация завершена', 'Нет результата');
+    }
+
+    if (images.isNotEmpty && mounted) {
+      setState(() => currentTab = 3);
+    }
+  }
+
   // ===================== ГЕНЕРАЦИЯ =====================
 
   Future<void> generate() async {
+    // Haptic при запуске
+    HapticFeedback.mediumImpact();
+
     setState(() {
       isGenerating = true;
       progress = 0;
@@ -250,55 +343,14 @@ mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeState
           '${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year}';
       final timeStr =
           '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
-      final genInfo =
-      GenerationInfo(seed: usedSeed, time: timeStr, date: dateStr);
 
-      if (images.isNotEmpty) {
-        final imagePaths = await HistoryStorage.saveImages(images);
-        final historyEntry = HistoryEntry(
-          imagePaths: imagePaths,
-          seed: usedSeed,
-          date: dateStr,
-          time: timeStr,
-          generationTime: time,
-          promptPreview: zimageBaseCtrl.text.isNotEmpty
-              ? zimageBaseCtrl.text.substring(
-              0,
-              zimageBaseCtrl.text.length > 100
-                  ? 100
-                  : zimageBaseCtrl.text.length)
-              : 'Без промпта',
-        );
-        await HistoryStorage.add(historyEntry);
-      }
-
-      setState(() {
-        lastImages = images;
-        lastTime = time;
-        lastInfo = genInfo;
-        status = images.isNotEmpty
-            ? 'Готово за $time! Сид: $usedSeed'
-            : 'Нет результата';
-        isGenerating = false;
-        progress = 1.0;
-        currentNode = '';
-        previewImage = null;
-      });
-
-      HapticFeedback.heavyImpact();
-      if (images.isNotEmpty) {
-        await showImageNotification(
-          'Генерация завершена',
-          'Готово за $time (сид: $usedSeed)',
-          images.first,
-        );
-      } else {
-        await showNotification('Генерация завершена', 'Нет результата');
-      }
-
-      if (images.isNotEmpty && mounted) {
-        setState(() => currentTab = 3);
-      }
+      await _onSuccess(
+        images: images,
+        usedSeed: usedSeed,
+        time: time,
+        dateStr: dateStr,
+        timeStr: timeStr,
+      );
     } catch (e) {
       stopTimer();
       _stopTimeout();
@@ -320,6 +372,7 @@ mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeState
         currentNode = '';
         previewImage = null;
       });
+      // Haptic при ошибке
       HapticFeedback.heavyImpact();
       await showNotification('Ошибка генерации', errorMsg);
     } finally {
@@ -329,6 +382,7 @@ mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeState
   }
 
   Future<void> stopGeneration() async {
+    HapticFeedback.lightImpact();
     _stopTimeout();
     try {
       final ok = await service.cancelGeneration();
@@ -478,44 +532,13 @@ mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeState
             '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
         if (images.isNotEmpty) {
-          final imagePaths = await HistoryStorage.saveImages(images);
-          final historyEntry = HistoryEntry(
-            imagePaths: imagePaths,
-            seed: service.lastSeed,
-            date: dateStr,
-            time: timeStr,
-            generationTime: time,
-            promptPreview: zimageBaseCtrl.text.isNotEmpty
-                ? zimageBaseCtrl.text.substring(
-                0,
-                zimageBaseCtrl.text.length > 100
-                    ? 100
-                    : zimageBaseCtrl.text.length)
-                : 'Без промпта',
+          await _onSuccess(
+            images: images,
+            usedSeed: service.lastSeed,
+            time: time,
+            dateStr: dateStr,
+            timeStr: timeStr,
           );
-          await HistoryStorage.add(historyEntry);
-
-          setState(() {
-            lastImages = images;
-            lastTime = time;
-            lastInfo = GenerationInfo(
-              seed: service.lastSeed,
-              time: timeStr,
-              date: dateStr,
-            );
-            status = 'Готово за $time!';
-            isGenerating = false;
-            progress = 1.0;
-            currentNode = '';
-            previewImage = null;
-          });
-
-          HapticFeedback.heavyImpact();
-          await showImageNotification(
-              'Генерация завершена', 'Готово за $time', images.first);
-          if (mounted) {
-            setState(() => currentTab = 3);
-          }
           return;
         }
       }

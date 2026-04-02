@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'gallery_screen.dart';
 import 'glass_theme.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter/services.dart';
 
 class HistoryEntry {
   final List<String> imagePaths;
@@ -284,6 +285,7 @@ class _HistoryScreenState extends State<HistoryScreen>
       _showFavOnly ? _entries.where((e) => e.isFavorite).toList() : _entries;
 
   Future<void> _toggleFavorite(int realIndex) async {
+    HapticFeedback.selectionClick();
     setState(() {
       _entries[realIndex].isFavorite = !_entries[realIndex].isFavorite;
     });
@@ -319,6 +321,7 @@ class _HistoryScreenState extends State<HistoryScreen>
       ),
     );
     if (confirm == true) {
+      HapticFeedback.heavyImpact();
       await HistoryStorage.clear();
       await _load();
     }
@@ -642,6 +645,7 @@ class _HistoryCardState extends State<_HistoryCard> {
   Future<void> _shareFirstImage() async {
     final images = await widget.entry.loadImages();
     if (images.isEmpty || !mounted) return;
+    HapticFeedback.lightImpact();
     try {
       final dir = await getTemporaryDirectory();
       final file = File(
