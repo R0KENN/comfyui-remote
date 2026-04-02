@@ -1169,147 +1169,160 @@ class _AnimatedSectionState extends State<_AnimatedSection>
       ),
     );
   }
-  class _PresetSheet extends StatefulWidget {
+}
+
+// ===================== ПРЕСЕТЫ =====================
+
+class _PresetSheet extends StatefulWidget {
   final ScrollController scrollController;
   final VoidCallback onSave;
   final void Function(Preset) onApply;
 
   const _PresetSheet({
-  required this.scrollController,
-  required this.onSave,
-  required this.onApply,
+    required this.scrollController,
+    required this.onSave,
+    required this.onApply,
   });
 
   @override
   State<_PresetSheet> createState() => _PresetSheetState();
-  }
+}
 
-  class _PresetSheetState extends State<_PresetSheet> {
+class _PresetSheetState extends State<_PresetSheet> {
   List<Preset> _presets = [];
   bool _loading = true;
 
   @override
   void initState() {
-  super.initState();
-  _load();
+    super.initState();
+    _load();
   }
 
   Future<void> _load() async {
-  final list = await PresetStorage.load();
-  if (mounted) setState(() { _presets = list; _loading = false; });
+    final list = await PresetStorage.load();
+    if (mounted) {
+      setState(() {
+        _presets = list;
+        _loading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-  return Container(
-  decoration: const BoxDecoration(
-  color: Color(0xFF0A0A0C),
-  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-  ),
-  child: Column(
-  children: [
-  const SizedBox(height: 12),
-  Container(
-  width: 36, height: 4,
-  decoration: BoxDecoration(
-  color: Colors.white.withValues(alpha: 0.12),
-  borderRadius: BorderRadius.circular(2),
-  ),
-  ),
-  Padding(
-  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-  child: Row(
-  children: [
-  const Icon(Icons.tune_rounded,
-  color: Color(0xFF5AC8FA), size: 20),
-  const SizedBox(width: 10),
-  const Text('Пресеты',
-  style: TextStyle(
-  color: GlassTheme.textPrimary,
-  fontSize: 17,
-  fontWeight: FontWeight.w600)),
-  const Spacer(),
-  GestureDetector(
-  onTap: widget.onSave,
-  child: Container(
-  padding: const EdgeInsets.symmetric(
-  horizontal: 12, vertical: 6),
-  decoration: BoxDecoration(
-  color: const Color(0xFFFFD60A).withValues(alpha: 0.1),
-  borderRadius: BorderRadius.circular(10),
-  border: Border.all(
-  color: const Color(0xFFFFD60A)
-      .withValues(alpha: 0.25)),
-  ),
-  child: const Row(
-  mainAxisSize: MainAxisSize.min,
-  children: [
-  Icon(Icons.add_rounded,
-  size: 14, color: Color(0xFFFFD60A)),
-  SizedBox(width: 4),
-  Text('Сохранить',
-  style: TextStyle(
-  fontSize: 12,
-  color: Color(0xFFFFD60A),
-  fontWeight: FontWeight.w600)),
-  ],
-  ),
-  ),
-  ),
-  ],
-  ),
-  ),
-  Expanded(
-  child: _loading
-  ? const Center(
-  child:
-  CircularProgressIndicator(color: Color(0xFF5AC8FA)))
-      : _presets.isEmpty
-  ? Center(
-  child: Text('Нет пресетов',
-  style: TextStyle(
-  color: Colors.white.withValues(alpha: 0.2),
-  fontSize: 14)),
-  )
-      : ListView.builder(
-  controller: widget.scrollController,
-  padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
-  itemCount: _presets.length,
-  itemBuilder: (_, i) {
-  final p = _presets[i];
-  return GlassTheme.card(
-  margin: const EdgeInsets.only(bottom: 6),
-  padding: EdgeInsets.zero,
-  child: ListTile(
-  onTap: () => widget.onApply(p),
-  title: Text(p.name,
-  style: const TextStyle(
-  color: GlassTheme.textPrimary,
-  fontSize: 14,
-  fontWeight: FontWeight.w600)),
-  subtitle: Text(
-  '${p.width}×${p.height} • ${p.created.day}.${p.created.month}.${p.created.year}',
-  style: TextStyle(
-  color: Colors.grey[600], fontSize: 11),
-  ),
-  trailing: GestureDetector(
-  onTap: () async {
-  await PresetStorage.remove(i);
-  _load();
-  },
-  child: Icon(Icons.delete_outline,
-  size: 18,
-  color: Colors.red.withValues(alpha: 0.5)),
-  ),
-  ),
-  );
-  },
-  ),
-  ),
-  ],
-  ),
-  );
-  }
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF0A0A0C),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Row(
+              children: [
+                const Icon(Icons.tune_rounded,
+                    color: Color(0xFF5AC8FA), size: 20),
+                const SizedBox(width: 10),
+                const Text('Пресеты',
+                    style: TextStyle(
+                        color: GlassTheme.textPrimary,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600)),
+                const Spacer(),
+                GestureDetector(
+                  onTap: widget.onSave,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color:
+                      const Color(0xFFFFD60A).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color: const Color(0xFFFFD60A)
+                              .withValues(alpha: 0.25)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add_rounded,
+                            size: 14, color: Color(0xFFFFD60A)),
+                        SizedBox(width: 4),
+                        Text('Сохранить',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFFFFD60A),
+                                fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(
+                child: CircularProgressIndicator(
+                    color: Color(0xFF5AC8FA)))
+                : _presets.isEmpty
+                ? Center(
+              child: Text('Нет пресетов',
+                  style: TextStyle(
+                      color:
+                      Colors.white.withValues(alpha: 0.2),
+                      fontSize: 14)),
+            )
+                : ListView.builder(
+              controller: widget.scrollController,
+              padding:
+              const EdgeInsets.fromLTRB(12, 0, 12, 20),
+              itemCount: _presets.length,
+              itemBuilder: (_, i) {
+                final p = _presets[i];
+                return GlassTheme.card(
+                  margin: const EdgeInsets.only(bottom: 6),
+                  padding: EdgeInsets.zero,
+                  child: ListTile(
+                    onTap: () => widget.onApply(p),
+                    title: Text(p.name,
+                        style: const TextStyle(
+                            color: GlassTheme.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600)),
+                    subtitle: Text(
+                      '${p.width}×${p.height} • ${p.created.day}.${p.created.month}.${p.created.year}',
+                      style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 11),
+                    ),
+                    trailing: GestureDetector(
+                      onTap: () async {
+                        await PresetStorage.remove(i);
+                        _load();
+                      },
+                      child: Icon(Icons.delete_outline,
+                          size: 18,
+                          color: Colors.red
+                              .withValues(alpha: 0.5)),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
-

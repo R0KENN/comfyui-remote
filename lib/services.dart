@@ -873,6 +873,16 @@ class ComfyUIService {
     return await getCachedStats();
   }
 
+  Future<Map<String, dynamic>> getQueue() async {
+    try {
+      final resp = await http
+          .get(Uri.parse('$serverUrl/queue'))
+          .timeout(const Duration(seconds: 10));
+      if (resp.statusCode == 200) return jsonDecode(resp.body);
+    } catch (_) {}
+    return {};
+  }
+
   Future<Map<String, dynamic>> getHistory({int maxItems = 20}) async {
     try {
       final resp = await http

@@ -229,7 +229,7 @@ class _ServerGalleryScreenState extends State<ServerGalleryScreen> {
                 ),
               );
             },
-            errorBuilder: (_, _, _) => Container(
+            errorBuilder: (ctx, err, stack) => Container(
               color: Colors.white.withValues(alpha: 0.02),
               child: Icon(Icons.broken_image_outlined,
                   size: 20, color: Colors.white.withValues(alpha: 0.1)),
