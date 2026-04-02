@@ -12,10 +12,7 @@ class SettingsSection extends StatelessWidget {
   final ValueChanged<int> onWidthChanged;
   final ValueChanged<int> onHeightChanged;
   final TextEditingController seedCtrl;
-  final TextEditingController serverCtrl;
-  final TextEditingController macCtrl;
   final bool serverOnline;
-  final VoidCallback onCheckServer;
   final Uint8List? img2imgBytes;
   final String? img2imgName;
   final VoidCallback onPickImage;
@@ -30,10 +27,7 @@ class SettingsSection extends StatelessWidget {
     required this.onWidthChanged,
     required this.onHeightChanged,
     required this.seedCtrl,
-    required this.serverCtrl,
-    required this.macCtrl,
     required this.serverOnline,
-    required this.onCheckServer,
     this.img2imgBytes,
     this.img2imgName,
     required this.onPickImage,
@@ -48,7 +42,6 @@ class SettingsSection extends StatelessWidget {
     return GlassTheme.card(
       padding: EdgeInsets.zero,
       child: Column(children: [
-        // ── Заголовок ──
         GestureDetector(
           onTap: onToggle,
           behavior: HitTestBehavior.opaque,
@@ -59,8 +52,7 @@ class SettingsSection extends StatelessWidget {
                   size: 14, color: Colors.white.withValues(alpha: 0.15)),
               const SizedBox(width: 8),
               Container(
-                width: 3,
-                height: 18,
+                width: 3, height: 18,
                 decoration: BoxDecoration(
                   color: GlassTheme.textTertiary,
                   borderRadius: BorderRadius.circular(2),
@@ -70,27 +62,20 @@ class SettingsSection extends StatelessWidget {
               const Expanded(
                 child: Text('Настройки',
                   style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: GlassTheme.textSecondary,
-                    letterSpacing: -0.3,
+                    fontWeight: FontWeight.w600, fontSize: 14,
+                    color: GlassTheme.textSecondary, letterSpacing: -0.3,
                   ),
                 ),
               ),
               Container(
-                width: 8,
-                height: 8,
+                width: 8, height: 8,
                 margin: const EdgeInsets.only(right: 6),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: serverOnline
-                      ? const Color(0xFF30D158)
-                      : const Color(0xFFFF3B30),
+                  color: serverOnline ? const Color(0xFF30D158) : const Color(0xFFFF3B30),
                   boxShadow: [
                     BoxShadow(
-                      color: (serverOnline
-                          ? const Color(0xFF30D158)
-                          : const Color(0xFFFF3B30))
+                      color: (serverOnline ? const Color(0xFF30D158) : const Color(0xFFFF3B30))
                           .withValues(alpha: 0.4),
                       blurRadius: 6,
                     ),
@@ -120,8 +105,6 @@ class SettingsSection extends StatelessWidget {
             ]),
           ),
         ),
-
-        // ── Содержимое ──
         AnimatedCrossFade(
           firstChild: const SizedBox(width: double.infinity, height: 0),
           secondChild: Padding(
@@ -129,10 +112,6 @@ class SettingsSection extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildServerField(),
-                const SizedBox(height: 12),
-                _buildMacField(),
-                const SizedBox(height: 16),
                 _buildSeedField(),
                 const SizedBox(height: 16),
                 _buildResolutionPresets(currentPreset),
@@ -143,71 +122,10 @@ class SettingsSection extends StatelessWidget {
               ],
             ),
           ),
-          crossFadeState: isExpanded
-              ? CrossFadeState.showSecond
-              : CrossFadeState.showFirst,
+          crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
           duration: const Duration(milliseconds: 300),
         ),
       ]),
-    );
-  }
-
-  Widget _buildServerField() {
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: serverCtrl,
-            style: const TextStyle(fontSize: 13, color: GlassTheme.textPrimary, letterSpacing: -0.2),
-            decoration: GlassTheme.glassInput(
-              label: 'Адрес сервера',
-              hint: 'http://192.168.1.100:8188',
-              accentColor: serverOnline
-                  ? const Color(0xFF30D158)
-                  : GlassTheme.textSecondary,
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        GestureDetector(
-          onTap: onCheckServer,
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: serverOnline
-                  ? const Color(0xFF30D158).withValues(alpha: 0.1)
-                  : Colors.white.withValues(alpha: 0.03),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: serverOnline
-                    ? const Color(0xFF30D158).withValues(alpha: 0.3)
-                    : const Color(0x0AFFFFFF),
-                width: 0.5,
-              ),
-            ),
-            child: Icon(
-              serverOnline ? Icons.check_circle_rounded : Icons.refresh_rounded,
-              size: 18,
-              color: serverOnline
-                  ? const Color(0xFF30D158)
-                  : GlassTheme.textTertiary,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMacField() {
-    return TextField(
-      controller: macCtrl,
-      style: const TextStyle(fontSize: 13, color: GlassTheme.textPrimary, letterSpacing: -0.2),
-      decoration: GlassTheme.glassInput(
-        label: 'MAC-адрес (Wake-on-LAN)',
-        hint: 'AA:BB:CC:DD:EE:FF',
-        accentColor: GlassTheme.textSecondary,
-      ),
     );
   }
 
@@ -220,53 +138,35 @@ class SettingsSection extends StatelessWidget {
             style: const TextStyle(fontSize: 13, color: GlassTheme.textPrimary, letterSpacing: -0.2),
             keyboardType: TextInputType.number,
             decoration: GlassTheme.glassInput(
-              label: 'Сид (-1 = случайный)',
-              hint: '1234567890',
+              label: 'Сид (-1 = случайный)', hint: '1234567890',
               accentColor: GlassTheme.textSecondary,
             ),
           ),
         ),
         const SizedBox(width: 8),
-        // Кнопка рандомного сида
         GestureDetector(
-          onTap: () {
-            final random = Random();
-            seedCtrl.text = random.nextInt(2147483647).toString();
-          },
+          onTap: () => seedCtrl.text = Random().nextInt(2147483647).toString(),
           child: Container(
-            width: 44,
-            height: 44,
+            width: 44, height: 44,
             decoration: BoxDecoration(
               color: const Color(0xFFFFD60A).withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFFFFD60A).withValues(alpha: 0.15),
-                width: 0.5,
-              ),
+              border: Border.all(color: const Color(0xFFFFD60A).withValues(alpha: 0.15), width: 0.5),
             ),
-            child: const Icon(Icons.casino_rounded,
-                size: 18, color: Color(0xFFFFD60A)),
+            child: const Icon(Icons.casino_rounded, size: 18, color: Color(0xFFFFD60A)),
           ),
         ),
         const SizedBox(width: 8),
-        // Кнопка сброса на -1
         GestureDetector(
-          onTap: () {
-            seedCtrl.text = '-1';
-          },
+          onTap: () => seedCtrl.text = '-1',
           child: Container(
-            width: 44,
-            height: 44,
+            width: 44, height: 44,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.03),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0x0AFFFFFF),
-                width: 0.5,
-              ),
+              border: Border.all(color: const Color(0x0AFFFFFF), width: 0.5),
             ),
-            child: Icon(Icons.shuffle_rounded,
-                size: 18, color: GlassTheme.textTertiary),
+            child: Icon(Icons.shuffle_rounded, size: 18, color: GlassTheme.textTertiary),
           ),
         ),
       ],
@@ -288,59 +188,37 @@ class SettingsSection extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Wrap(
-          spacing: 6,
-          runSpacing: 6,
+          spacing: 6, runSpacing: 6,
           children: HomeStateMixin.resPresets.asMap().entries.map((e) {
             final p = e.value;
             final active = p['w'] == width && p['h'] == height;
             return GestureDetector(
-              onTap: () {
-                onWidthChanged(p['w'] as int);
-                onHeightChanged(p['h'] as int);
-              },
+              onTap: () { onWidthChanged(p['w'] as int); onHeightChanged(p['h'] as int); },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeOutCubic,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: active
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Colors.white.withValues(alpha: 0.02),
+                  color: active ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.02),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: active
-                        ? const Color(0x30FFFFFF)
-                        : const Color(0x0AFFFFFF),
-                    width: 0.5,
+                    color: active ? const Color(0x30FFFFFF) : const Color(0x0AFFFFFF), width: 0.5,
                   ),
-                  boxShadow: active
-                      ? [BoxShadow(color: Colors.white.withValues(alpha: 0.03), blurRadius: 8)]
-                      : [],
+                  boxShadow: active ? [BoxShadow(color: Colors.white.withValues(alpha: 0.03), blurRadius: 8)] : [],
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(p['icon'] as IconData,
-                        size: 16,
-                        color: active
-                            ? const Color(0xFFF0F0F0)
-                            : GlassTheme.textTertiary),
+                    Icon(p['icon'] as IconData, size: 16,
+                        color: active ? const Color(0xFFF0F0F0) : GlassTheme.textTertiary),
                     const SizedBox(height: 3),
                     Text(p['label'] as String,
-                        style: TextStyle(
-                            fontSize: 10,
+                        style: TextStyle(fontSize: 10,
                             fontWeight: active ? FontWeight.w600 : FontWeight.normal,
-                            color: active
-                                ? const Color(0xFFF0F0F0)
-                                : GlassTheme.textTertiary,
-                            letterSpacing: -0.2)),
+                            color: active ? const Color(0xFFF0F0F0) : GlassTheme.textTertiary, letterSpacing: -0.2)),
                     Text('${p['w']}×${p['h']}',
-                        style: TextStyle(
-                            fontSize: 8,
-                            color: active
-                                ? GlassTheme.textSecondary
-                                : const Color(0xFF3A3A3E),
-                            letterSpacing: -0.2)),
+                        style: TextStyle(fontSize: 8,
+                            color: active ? GlassTheme.textSecondary : const Color(0xFF3A3A3E), letterSpacing: -0.2)),
                   ],
                 ),
               ),
@@ -370,11 +248,7 @@ class SettingsSection extends StatelessWidget {
   Widget _buildSliderRow(String label, int value, ValueChanged<int> onChanged) {
     return Row(
       children: [
-        SizedBox(
-          width: 14,
-          child: Text(label,
-              style: const TextStyle(fontSize: 10, color: GlassTheme.textTertiary)),
-        ),
+        SizedBox(width: 14, child: Text(label, style: const TextStyle(fontSize: 10, color: GlassTheme.textTertiary))),
         Expanded(
           child: SliderTheme(
             data: const SliderThemeData(
@@ -386,21 +260,13 @@ class SettingsSection extends StatelessWidget {
               thumbColor: Color(0xFFF0F0F0),
             ),
             child: Slider(
-              value: value.toDouble(),
-              min: 256,
-              max: 2048,
-              divisions: 28,
-              label: '$value',
-              onChanged: (v) => onChanged((v ~/ 64) * 64),
+              value: value.toDouble(), min: 256, max: 2048, divisions: 28,
+              label: '$value', onChanged: (v) => onChanged((v ~/ 64) * 64),
             ),
           ),
         ),
-        SizedBox(
-          width: 38,
-          child: Text('$value',
-              style: const TextStyle(fontSize: 10, color: GlassTheme.textSecondary),
-              textAlign: TextAlign.right),
-        ),
+        SizedBox(width: 38, child: Text('$value',
+            style: const TextStyle(fontSize: 10, color: GlassTheme.textSecondary), textAlign: TextAlign.right)),
       ],
     );
   }
@@ -418,33 +284,19 @@ class SettingsSection extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   color: Colors.white.withValues(alpha: 0.03),
                   border: Border.all(
-                    color: img2imgBytes != null
-                        ? const Color(0xFF5AC8FA).withValues(alpha: 0.3)
-                        : const Color(0x0AFFFFFF),
+                    color: img2imgBytes != null ? const Color(0xFF5AC8FA).withValues(alpha: 0.3) : const Color(0x0AFFFFFF),
                     width: 0.5,
                   ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      img2imgBytes != null ? Icons.swap_horiz_rounded : Icons.add_photo_alternate_outlined,
-                      size: 16,
-                      color: img2imgBytes != null
-                          ? const Color(0xFF5AC8FA)
-                          : GlassTheme.textTertiary,
-                    ),
+                    Icon(img2imgBytes != null ? Icons.swap_horiz_rounded : Icons.add_photo_alternate_outlined,
+                        size: 16, color: img2imgBytes != null ? const Color(0xFF5AC8FA) : GlassTheme.textTertiary),
                     const SizedBox(width: 8),
-                    Text(
-                      img2imgBytes != null ? 'Заменить фото' : 'img2img: выбрать фото',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: img2imgBytes != null
-                            ? const Color(0xFF5AC8FA)
-                            : GlassTheme.textTertiary,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
+                    Text(img2imgBytes != null ? 'Заменить фото' : 'img2img: выбрать фото',
+                        style: TextStyle(fontSize: 12,
+                            color: img2imgBytes != null ? const Color(0xFF5AC8FA) : GlassTheme.textTertiary, letterSpacing: -0.2)),
                   ],
                 ),
               ),
@@ -455,18 +307,13 @@ class SettingsSection extends StatelessWidget {
             GestureDetector(
               onTap: onClearImage,
               child: Container(
-                width: 44,
-                height: 44,
+                width: 44, height: 44,
                 decoration: BoxDecoration(
                   color: const Color(0xFFFF3B30).withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFFFF3B30).withValues(alpha: 0.15),
-                    width: 0.5,
-                  ),
+                  border: Border.all(color: const Color(0xFFFF3B30).withValues(alpha: 0.15), width: 0.5),
                 ),
-                child: const Icon(Icons.close_rounded,
-                    size: 16, color: Color(0xFFFF3B30)),
+                child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFFFF3B30)),
               ),
             ),
           ],
@@ -475,8 +322,7 @@ class SettingsSection extends StatelessWidget {
           const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.memory(img2imgBytes!,
-                height: 120, width: double.infinity, fit: BoxFit.cover),
+            child: Image.memory(img2imgBytes!, height: 120, width: double.infinity, fit: BoxFit.cover),
           ),
         ],
       ],

@@ -760,10 +760,7 @@ class _HomeScreenState extends State<HomeScreen>
       case 'settings':
         return SettingsSection(
           seedCtrl: seedCtrl,
-          serverCtrl: serverCtrl,
-          macCtrl: macCtrl,
           serverOnline: serverOnline,
-          onCheckServer: () => checkServer().then((_) => setState(() {})),
           width: width,
           height: height,
           img2imgBytes: img2imgBytes,
@@ -988,6 +985,8 @@ class _HomeScreenState extends State<HomeScreen>
                     builder: (_) => ModelManagerScreen(service: service),
                   ),
                 );
+              case 'connection':
+                _showConnectionDialog();
               case 'wol':
                 await _sendWol();
             }
@@ -998,6 +997,7 @@ class _HomeScreenState extends State<HomeScreen>
             _menuItem(Icons.content_copy_rounded, 'Скопировать в Refiner', 'copy_to_refiner'),
             _menuItem(Icons.power_settings_new_rounded, 'Wake-on-LAN', 'wol'),
             _menuItem(Icons.model_training, 'Модели сервера', 'models'),
+            _menuItem(Icons.dns_outlined, 'Подключение', 'connection'),
             _menuItem(Icons.tune_rounded, 'Пресеты', 'presets'),
           ],
         ),
@@ -1022,6 +1022,143 @@ class _HomeScreenState extends State<HomeScreen>
         ],
       ),
     );
+  }
+
+  void _showConnectionDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0E0E12),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border.all(color: const Color(0x12FFFFFF), width: 0.5),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 36, height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text('Подключение',
+                style: TextStyle(
+                  color: GlassTheme.textPrimary, fontSize: 17,
+                  fontWeight: FontWeight.w600, letterSpacing: -0.4,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: serverCtrl,
+                            style: const TextStyle(fontSize: 13, color: GlassTheme.textPrimary, letterSpacing: -0.2),
+                            decoration: GlassTheme.glassInput(
+                              label: 'Адрес сервера',
+                              hint: 'http://192.168.1.100:8188',
+                              accentColor: serverOnline ? const Color(0xFF30D158) : GlassTheme.textSecondary,
+                            ),
+                            onChanged: (_) => _saveConnectionFields(),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () {
+                            checkServer().then((_) {
+                              setState(() {});
+                              if (ctx.mounted) {
+                                Navigator.pop(ctx);
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(
+                                    content: Text(serverOnline ? 'Сервер подключён' : 'Сервер недоступен'),
+                                    backgroundColor: serverOnline ? const Color(0xFF30D158) : const Color(0xFFFF3B30),
+                                  ),
+                                );
+                              }
+                            });
+                          },
+                          child: Container(
+                            width: 44, height: 44,
+                            decoration: BoxDecoration(
+                              color: serverOnline
+                                  ? const Color(0xFF30D158).withValues(alpha: 0.1)
+                                  : Colors.white.withValues(alpha: 0.03),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: serverOnline
+                                    ? const Color(0xFF30D158).withValues(alpha: 0.3)
+                                    : const Color(0x0AFFFFFF),
+                                width: 0.5,
+                              ),
+                            ),
+                            child: Icon(
+                              serverOnline ? Icons.check_circle_rounded : Icons.refresh_rounded,
+                              size: 18,
+                              color: serverOnline ? const Color(0xFF30D158) : GlassTheme.textTertiary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: macCtrl,
+                      style: const TextStyle(fontSize: 13, color: GlassTheme.textPrimary, letterSpacing: -0.2),
+                      decoration: GlassTheme.glassInput(
+                        label: 'MAC-адрес (Wake-on-LAN)',
+                        hint: 'AA:BB:CC:DD:EE:FF',
+                        accentColor: GlassTheme.textSecondary,
+                      ),
+                      onChanged: (_) => _saveConnectionFields(),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Container(
+                          width: 8, height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: serverOnline ? const Color(0xFF30D158) : const Color(0xFFFF3B30),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          serverOnline ? 'Сервер онлайн' : 'Сервер оффлайн',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: serverOnline ? const Color(0xFF30D158) : const Color(0xFFFF3B30),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveConnectionFields() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('server_url', serverCtrl.text);
+    await prefs.setString('mac_address', macCtrl.text);
   }
 
   Widget _buildBody() {
