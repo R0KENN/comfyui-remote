@@ -7,7 +7,6 @@ class ComfyRemoteApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Статус-бар и навигация — прозрачные для AMOLED
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
@@ -32,7 +31,9 @@ class ComfyRemoteApp extends StatelessWidget {
           elevation: 0,
         ),
         cardColor: const Color(0xFF080809),
-        dialogBackgroundColor: const Color(0xFF0A0A0C),
+        dialogTheme: const DialogThemeData(
+          backgroundColor: Color(0xFF0A0A0C),
+        ),
         snackBarTheme: SnackBarThemeData(
           backgroundColor: const Color(0xFF1C1C1E),
           contentTextStyle: const TextStyle(color: Color(0xFFF2F2F7)),

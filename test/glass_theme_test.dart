@@ -163,8 +163,8 @@ void main() {
     });
 
     test('textPrimary светлый', () {
-      expect(GlassTheme.textPrimary.alpha, 255);
-      expect(GlassTheme.textPrimary.red, greaterThan(200));
+      expect((GlassTheme.textPrimary.a * 255.0).round().clamp(0, 255), 255);
+      expect((GlassTheme.textPrimary.r * 255.0).round().clamp(0, 255), greaterThan(200));
     });
   });
 }
