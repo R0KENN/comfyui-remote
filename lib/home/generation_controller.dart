@@ -364,29 +364,29 @@ mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeState
           ws = service.connectWebSocket();
           ws!.stream.listen(
                 (msg) {
-              // Обработка JSON
               if (msg is String) {
-                final wsData = jsonDecode(msg);
-                if (wsData['type'] == 'progress') {
-                  final v = wsData['data']['value'];
-                  final m = wsData['data']['max'];
-                  setState(() {
-                    progress = v / m;
-                    status = 'Шаг $v / $m';
-                  });
-                } else if (wsData['type'] == 'executing') {
-                  final node = wsData['data']['node'];
-                  if (node != null) {
+                try {
+                  final wsData = jsonDecode(msg);
+                  if (wsData['type'] == 'progress') {
+                    final v = wsData['data']['value'];
+                    final m = wsData['data']['max'];
                     setState(() {
-                      currentNode =
-                          service.getNodeDisplayName(node.toString());
+                      progress = v / m;
+                      status = 'Шаг $v / $m';
                     });
-                  } else {
-                    onGenerationComplete(promptId);
+                  } else if (wsData['type'] == 'executing') {
+                    final node = wsData['data']['node'];
+                    if (node != null) {
+                      setState(() {
+                        currentNode =
+                            service.getNodeDisplayName(node.toString());
+                      });
+                    } else {
+                      onGenerationComplete(promptId);
+                    }
                   }
-                }
+                } catch (_) {}
               } else if (msg is List<int>) {
-                // Preview
                 if (msg.length > 8) {
                   final imageData = Uint8List.fromList(msg.sublist(8));
                   if (imageData.length > 100) {
@@ -438,6 +438,7 @@ mixin GenerationControllerMixin<T extends StatefulWidget> on State<T>, HomeState
   }
 
   Future<void> onGenerationComplete(String? promptId) async {
+    if (!mounted) return;
     stopTimer();
     _stopTimeout();
     final time = fmtTime(elapsed);

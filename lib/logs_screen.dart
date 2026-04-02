@@ -180,6 +180,19 @@ class _LogsScreenState extends State<LogsScreen>
   }
 
   @override
+  void didUpdateWidget(covariant LogsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.serverAddress != widget.serverAddress) {
+      _ws?.sink.close();
+      setState(() {
+        _connected = false;
+        _logs.clear();
+      });
+      _connect();
+    }
+  }
+
+    @override
   void dispose() {
     _ws?.sink.close();
     _scrollCtrl.dispose();

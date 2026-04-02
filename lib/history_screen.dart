@@ -301,10 +301,10 @@ class _HistoryScreenState extends State<HistoryScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Очистить историю?',
+        title: const Text('Очистить всё?',
             style: TextStyle(color: Colors.white)),
         content: const Text(
-            'Все записи и изображения будут удалены безвозвратно.',
+            'Все записи истории будут удалены.',
             style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
@@ -534,14 +534,14 @@ class _HistoryScreenState extends State<HistoryScreen>
                   Text(
                       _showFavOnly
                           ? 'Нет избранных'
-                          : 'История пуста',
+                          : 'Пусто',
                       style: TextStyle(
                           color: Colors.grey[600], fontSize: 16)),
                   const SizedBox(height: 4),
                   Text(
                       _showFavOnly
-                          ? 'Нажмите звезду на карточке'
-                          : 'Генерации будут появляться здесь',
+                          ? 'Добавьте генерации в избранное'
+                          : 'Генерации появятся здесь',
                       style: TextStyle(
                           color: Colors.grey[700], fontSize: 12)),
                 ],

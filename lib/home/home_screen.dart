@@ -984,6 +984,7 @@ class _HomeScreenState extends State<HomeScreen>
   void dispose() {
     _bgSub?.cancel();
     _saveTimer?.cancel();
+    saveAll();
     _removeAutoSaveListeners();
     disposeGeneration();
     disposeControllers();
