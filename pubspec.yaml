@@ -20,7 +20,7 @@ dependencies:
   permission_handler: ^11.3.0
   share_plus: ^10.1.0
   file_picker: ^8.0.0
-  audioplayers: ^6.1.0
+
 
 dev_dependencies:
   flutter_test:
@@ -35,7 +35,7 @@ flutter:
     - assets/workflow_api.json
     - assets/workflow_api_2.json
     - assets/icon.png
-    - assets/sounds/
+
 
 flutter_launcher_icons:
   android: true
