@@ -21,6 +21,7 @@ import 'ai_prompt_dialog.dart';
 import '../server_gallery_screen.dart';
 import '../model_manager_screen.dart';
 import '../preset_manager.dart';
+import 'package:http/http.dart' as http;
 
 class _SectionConfig {
   final String key;
@@ -419,6 +420,59 @@ class _HomeScreenState extends State<HomeScreen>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ошибка WoL: $e'), backgroundColor: const Color(0xFFFF3B30)),
+      );
+    }
+  }
+
+  Future<void> _startComfyUI() async {
+    final base = serverCtrl.text.trim();
+    if (base.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Укажите адрес сервера'),
+          backgroundColor: Color(0xFFFF3B30),
+        ),
+      );
+      return;
+    }
+
+    try {
+      // Берём хост из адреса сервера (без порта ComfyUI)
+      final uri = Uri.parse(base);
+      final launcherUrl = '${uri.scheme}://${uri.host}:3333/start';
+
+      final resp = await http
+          .get(Uri.parse(launcherUrl))
+          .timeout(const Duration(seconds: 5));
+
+      if (!mounted) return;
+      if (resp.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ComfyUI запускается...'),
+            backgroundColor: Color(0xFF30D158),
+          ),
+        );
+        // Через 10 сек проверяем сервер
+        Future.delayed(const Duration(seconds: 10), () {
+          if (mounted) checkServer();
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: ${resp.statusCode}'),
+            backgroundColor: const Color(0xFFFF3B30),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Лаунчер недоступен (порт 3333)'),
+          backgroundColor: Color(0xFFFF3B30),
+        ),
       );
     }
   }
@@ -989,6 +1043,8 @@ class _HomeScreenState extends State<HomeScreen>
                 _showConnectionDialog();
               case 'wol':
                 await _sendWol();
+              case 'start_comfyui':
+                await _startComfyUI();
             }
           },
           itemBuilder: (_) => [
@@ -999,6 +1055,8 @@ class _HomeScreenState extends State<HomeScreen>
             _menuItem(Icons.model_training, 'Модели сервера', 'models'),
             _menuItem(Icons.dns_outlined, 'Подключение', 'connection'),
             _menuItem(Icons.tune_rounded, 'Пресеты', 'presets'),
+            _menuItem(Icons.power_settings_new_rounded, 'Wake-on-LAN', 'wol'),
+            _menuItem(Icons.play_circle_outline_rounded, 'Запустить ComfyUI', 'start_comfyui'),
           ],
         ),
       ],
