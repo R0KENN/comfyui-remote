@@ -1055,7 +1055,6 @@ class _HomeScreenState extends State<HomeScreen>
             _menuItem(Icons.model_training, 'Модели сервера', 'models'),
             _menuItem(Icons.dns_outlined, 'Подключение', 'connection'),
             _menuItem(Icons.tune_rounded, 'Пресеты', 'presets'),
-            _menuItem(Icons.power_settings_new_rounded, 'Wake-on-LAN', 'wol'),
             _menuItem(Icons.play_circle_outline_rounded, 'Запустить ComfyUI', 'start_comfyui'),
           ],
         ),
