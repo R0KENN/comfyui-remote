@@ -26,7 +26,6 @@ on State<T>, HomeStateMixin<T> {
   Timer? _timeoutTimer;
   static const _timeoutMinutes = 10;
 
-  // Completer для ожидания завершения генерации по WebSocket
   Completer<String?>? _generationCompleter;
 
   void startTimer() {
@@ -91,18 +90,29 @@ on State<T>, HomeStateMixin<T> {
         backgroundColor: const Color(0xFF1A1A1E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Сервер не отвечает',
-            style: TextStyle(color: Color(0xFFF0F0F0), fontSize: 16, fontWeight: FontWeight.w600)),
+            style: TextStyle(
+                color: Color(0xFFF0F0F0),
+                fontSize: 16,
+                fontWeight: FontWeight.w600)),
         content: Text(
             'Генерация длится уже ${fmtTime(elapsed)}. Сервер может быть завис.',
             style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 14)),
         actions: [
           TextButton(
-            onPressed: () { Navigator.pop(ctx); _startTimeout(); },
-            child: const Text('Подождать ещё', style: TextStyle(color: Color(0xFF8E8E93))),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _startTimeout();
+            },
+            child: const Text('Подождать ещё',
+                style: TextStyle(color: Color(0xFF8E8E93))),
           ),
           TextButton(
-            onPressed: () { Navigator.pop(ctx); stopGeneration(); },
-            child: const Text('Отменить', style: TextStyle(color: Color(0xFFFF3B30))),
+            onPressed: () {
+              Navigator.pop(ctx);
+              stopGeneration();
+            },
+            child: const Text('Отменить',
+                style: TextStyle(color: Color(0xFFFF3B30))),
           ),
         ],
       ),
@@ -137,16 +147,17 @@ on State<T>, HomeStateMixin<T> {
               currentNode = service.getNodeDisplayName(node.toString());
             });
           } else {
-            // node == null означает: генерация завершена!
-            // Получаем promptId из сообщения
             final promptId = data['data']['prompt_id']?.toString();
-            if (_generationCompleter != null && !_generationCompleter!.isCompleted) {
+            if (_generationCompleter != null &&
+                !_generationCompleter!.isCompleted) {
               _generationCompleter!.complete(promptId);
             }
           }
         } else if (type == 'execution_error') {
-          final errorMsg = data['data']?['exception_message'] ?? 'Неизвестная ошибка';
-          if (_generationCompleter != null && !_generationCompleter!.isCompleted) {
+          final errorMsg =
+              data['data']?['exception_message'] ?? 'Неизвестная ошибка';
+          if (_generationCompleter != null &&
+              !_generationCompleter!.isCompleted) {
             _generationCompleter!.completeError(Exception(errorMsg));
           }
         }
@@ -212,25 +223,38 @@ on State<T>, HomeStateMixin<T> {
         time: timeStr,
         generationTime: time,
         promptPreview: zimageBaseCtrl.text.isNotEmpty
-            ? zimageBaseCtrl.text.substring(0, zimageBaseCtrl.text.length > 100 ? 100 : zimageBaseCtrl.text.length)
+            ? zimageBaseCtrl.text.substring(
+            0,
+            zimageBaseCtrl.text.length > 100
+                ? 100
+                : zimageBaseCtrl.text.length)
             : 'Без промпта',
       );
       await HistoryStorage.add(historyEntry);
       await SeedStorage.add(SavedSeed(
-        seed: usedSeed, date: dateStr, time: timeStr,
+        seed: usedSeed,
+        date: dateStr,
+        time: timeStr,
         promptPreview: zimageBaseCtrl.text.isNotEmpty
-            ? zimageBaseCtrl.text.substring(0, zimageBaseCtrl.text.length > 60 ? 60 : zimageBaseCtrl.text.length)
+            ? zimageBaseCtrl.text.substring(
+            0,
+            zimageBaseCtrl.text.length > 60
+                ? 60
+                : zimageBaseCtrl.text.length)
             : '',
         generationTime: time,
       ));
     }
 
-    final genInfo = GenerationInfo(seed: usedSeed, time: timeStr, date: dateStr);
+    final genInfo =
+    GenerationInfo(seed: usedSeed, time: timeStr, date: dateStr);
     setState(() {
       lastImages = images;
       lastTime = time;
       lastInfo = genInfo;
-      status = images.isNotEmpty ? 'Готово за $time! Сид: $usedSeed' : 'Нет результата';
+      status = images.isNotEmpty
+          ? 'Готово за $time! Сид: $usedSeed'
+          : 'Нет результата';
       isGenerating = false;
       progress = 1.0;
       currentNode = '';
@@ -241,12 +265,58 @@ on State<T>, HomeStateMixin<T> {
     await AppSounds.playGenerationComplete();
 
     if (images.isNotEmpty) {
-      await showImageNotification('Генерация завершена', 'Готово за $time (сид: $usedSeed)', images.first);
+      await showImageNotification(
+          'Генерация завершена',
+          'Готово за $time (сид: $usedSeed)',
+          images.first);
     } else {
       await showNotification('Генерация завершена', 'Нет результата');
     }
 
-    if (images.isNotEmpty && mounted) setState(() => currentTab = 3);
+    // Открываем галерею результатов вместо переключения на вкладку истории
+    if (images.isNotEmpty && mounted) {
+      _showResultGallery(images, genInfo);
+    }
+  }
+
+  // ===================== ГАЛЕРЕЯ РЕЗУЛЬТАТОВ =====================
+
+  // ===================== ГАЛЕРЕЯ РЕЗУЛЬТАТОВ =====================
+
+  void _showResultGallery(List<Uint8List> images, GenerationInfo info) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black.withValues(alpha: 0.3),
+        transitionDuration: const Duration(milliseconds: 400),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return GalleryScreen(
+            images: images,
+            generationTime: lastTime,
+            info: info,
+            onRepeat: () {
+              Navigator.of(context).pop();
+              generate();
+            },
+          );
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curved =
+          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.05),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            ),
+          );
+        },
+      ),
+    );
   }
 
   // ===================== ГЕНЕРАЦИЯ =====================
@@ -275,20 +345,21 @@ on State<T>, HomeStateMixin<T> {
         await service.uploadImage(img2imgBytes!, img2imgName ?? 'input.png');
       }
 
-      // Создаём completer ПЕРЕД подключением WebSocket
       _generationCompleter = Completer<String?>();
 
       ws = service.connectWebSocket();
       ws!.stream.listen(
         _handleWsMessage,
         onError: (e) {
-          if (_generationCompleter != null && !_generationCompleter!.isCompleted) {
-            _generationCompleter!.completeError(Exception('WebSocket ошибка: $e'));
+          if (_generationCompleter != null &&
+              !_generationCompleter!.isCompleted) {
+            _generationCompleter!
+                .completeError(Exception('WebSocket ошибка: $e'));
           }
         },
         onDone: () {
-          // WS закрылся до завершения — fallback на polling
-          if (_generationCompleter != null && !_generationCompleter!.isCompleted) {
+          if (_generationCompleter != null &&
+              !_generationCompleter!.isCompleted) {
             _generationCompleter!.complete(null);
           }
         },
@@ -299,29 +370,27 @@ on State<T>, HomeStateMixin<T> {
 
       final workflow = service.buildWorkflow(
         getPromptData(),
-        width: width, height: height,
-        customSeed: customSeed, loraGroups: loraGroups,
+        width: width,
+        height: height,
+        customSeed: customSeed,
+        loraGroups: loraGroups,
       );
       final usedSeed = service.lastSeed;
       final promptId = await service.submitPrompt(workflow);
 
-      // Сохраняем для фонового отслеживания (но НЕ запускаем его polling
-      // пока WS активен, чтобы не было race condition)
-      await BackgroundGenerationService.startTracking(serverCtrl.text, promptId);
+      await BackgroundGenerationService.startTracking(
+          serverCtrl.text, promptId);
 
       setState(() => status = 'Ожидание...');
 
-      // ── Ждём завершения по WebSocket ──
       String? completedPromptId;
       try {
         completedPromptId = await _generationCompleter!.future
             .timeout(Duration(minutes: _timeoutMinutes));
       } on TimeoutException {
-        // WS не дождались — пробуем polling
         completedPromptId = null;
       }
 
-      // ── Получаем результат ──
       final fetchId = completedPromptId ?? promptId;
       final images = await service.fetchResults(fetchId);
 
@@ -331,10 +400,17 @@ on State<T>, HomeStateMixin<T> {
 
       final time = fmtTime(elapsed);
       final now = DateTime.now();
-      final dateStr = '${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year}';
-      final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+      final dateStr =
+          '${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year}';
+      final timeStr =
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
-      await _onSuccess(images: images, usedSeed: usedSeed, time: time, dateStr: dateStr, timeStr: timeStr);
+      await _onSuccess(
+          images: images,
+          usedSeed: usedSeed,
+          time: time,
+          dateStr: dateStr,
+          timeStr: timeStr);
     } catch (e) {
       stopTimer();
       _stopTimeout();
@@ -370,7 +446,6 @@ on State<T>, HomeStateMixin<T> {
     HapticFeedback.lightImpact();
     _stopTimeout();
 
-    // Завершаем completer чтобы generate() не висел
     if (_generationCompleter != null && !_generationCompleter!.isCompleted) {
       _generationCompleter!.completeError(Exception('Остановлено пользователем'));
     }
@@ -388,7 +463,9 @@ on State<T>, HomeStateMixin<T> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(ok ? 'Генерация остановлена' : 'Не удалось остановить')),
+          SnackBar(
+              content: Text(
+                  ok ? 'Генерация остановлена' : 'Не удалось остановить')),
         );
       }
     } catch (e) {
@@ -435,22 +512,30 @@ on State<T>, HomeStateMixin<T> {
           ws!.stream.listen(
             _handleWsMessage,
             onError: (_) {
-              if (_generationCompleter != null && !_generationCompleter!.isCompleted) {
-                _generationCompleter!.completeError(Exception('WebSocket потерян'));
+              if (_generationCompleter != null &&
+                  !_generationCompleter!.isCompleted) {
+                _generationCompleter!
+                    .completeError(Exception('WebSocket потерян'));
               }
-              setState(() { isGenerating = false; status = 'Соединение потеряно'; previewImage = null; });
-              stopTimer(); _stopTimeout();
+              setState(() {
+                isGenerating = false;
+                status = 'Соединение потеряно';
+                previewImage = null;
+              });
+              stopTimer();
+              _stopTimeout();
             },
             onDone: () {
-              if (_generationCompleter != null && !_generationCompleter!.isCompleted) {
+              if (_generationCompleter != null &&
+                  !_generationCompleter!.isCompleted) {
                 _generationCompleter!.complete(promptId);
               }
             },
           );
 
-          // Ждём завершения
           try {
-            await _generationCompleter!.future.timeout(Duration(minutes: _timeoutMinutes));
+            await _generationCompleter!.future
+                .timeout(Duration(minutes: _timeoutMinutes));
           } catch (_) {}
 
           await onGenerationComplete(promptId);
@@ -470,8 +555,13 @@ on State<T>, HomeStateMixin<T> {
       setState(() => serverOnline = true);
     } catch (e) {
       if (isGenerating) {
-        setState(() { isGenerating = false; status = 'Потеряно соединение'; previewImage = null; });
-        stopTimer(); _stopTimeout();
+        setState(() {
+          isGenerating = false;
+          status = 'Потеряно соединение';
+          previewImage = null;
+        });
+        stopTimer();
+        _stopTimeout();
       }
     }
   }
@@ -486,11 +576,18 @@ on State<T>, HomeStateMixin<T> {
       if (promptId != null) {
         final images = await service.fetchResults(promptId);
         final now = DateTime.now();
-        final dateStr = '${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year}';
-        final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+        final dateStr =
+            '${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year}';
+        final timeStr =
+            '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
         if (images.isNotEmpty) {
-          await _onSuccess(images: images, usedSeed: service.lastSeed, time: time, dateStr: dateStr, timeStr: timeStr);
+          await _onSuccess(
+              images: images,
+              usedSeed: service.lastSeed,
+              time: time,
+              dateStr: dateStr,
+              timeStr: timeStr);
           return;
         }
       }
