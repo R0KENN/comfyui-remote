@@ -765,6 +765,10 @@ class _HomeScreenState extends State<HomeScreen>
       onResult: (result) {
         setState(() {
           zimageBaseCtrl.text = result.zimageBase;
+          // Z-Image негатив
+          if (result.zimageNeg.isNotEmpty) {
+            zimageNegCtrl.text = result.zimageNeg;
+          }
           ponyPosCtrl.text = result.ponyPositive;
           ponyNegCtrl.text = result.ponyNegativeAdd;
           facePosCtrl.text = result.faceDetailer;
@@ -778,15 +782,17 @@ class _HomeScreenState extends State<HomeScreen>
               handFixPosCtrl.text = result.handFixAdd;
             }
           }
-          // Refiner: копия Z-Image базы по умолчанию
-          if (result.refinerNote.contains('копия') || result.refinerNote.isEmpty) {
-            refinerCtrl.text = result.zimageBase;
-          } else {
+          // Refiner: используем refiner_note, фоллбэк на Z-Image базу
+          if (result.refinerNote.isNotEmpty && !result.refinerNote.contains('копия')) {
             refinerCtrl.text = result.refinerNote;
+          } else {
+            refinerCtrl.text = result.zimageBase;
           }
-          // Refiner негатив = копия Z-Image негатива
-          if (refinerNegCtrl.text.isEmpty) {
-            refinerNegCtrl.text = zimageNegCtrl.text;
+          // Refiner негатив
+          if (result.refinerNeg.isNotEmpty) {
+            refinerNegCtrl.text = result.refinerNeg;
+          } else if (result.zimageNeg.isNotEmpty) {
+            refinerNegCtrl.text = result.zimageNeg;
           }
         });
       },
