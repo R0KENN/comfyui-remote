@@ -764,15 +764,28 @@ class _HomeScreenState extends State<HomeScreen>
       },
       onResult: (result) {
         setState(() {
-          zimageBaseCtrl.text = result.zimageBase;
-          // Z-Image негатив
+          // Z-Image База — основной позитив уже содержит все ограничения
+          // Если AI вернул дополнительные фразы в zimage_neg — дописываем к концу позитива
           if (result.zimageNeg.isNotEmpty) {
-            zimageNegCtrl.text = result.zimageNeg;
+            zimageBaseCtrl.text = '${result.zimageBase}, ${result.zimageNeg}';
+          } else {
+            zimageBaseCtrl.text = result.zimageBase;
           }
+          // Z-Image негатив поле очищаем — Z-Image его игнорирует
+          zimageNegCtrl.text = '';
+
+          // Pony
           ponyPosCtrl.text = result.ponyPositive;
           ponyNegCtrl.text = result.ponyNegativeAdd;
-          facePosCtrl.text = result.faceDetailer;
-          faceNegCtrl.text = result.faceDetailerNegAdd;
+
+          // FaceDetailer — дополнения идут в конец позитива
+          if (result.faceDetailerNegAdd.isNotEmpty) {
+            facePosCtrl.text = '${result.faceDetailer}, ${result.faceDetailerNegAdd}';
+          } else {
+            facePosCtrl.text = result.faceDetailer;
+          }
+          faceNegCtrl.text = '';
+
           // HandFix: дополняем стандартный промпт, не заменяем
           if (result.handFixAdd.isNotEmpty) {
             final base = handFixPosCtrl.text.trim();
@@ -782,18 +795,19 @@ class _HomeScreenState extends State<HomeScreen>
               handFixPosCtrl.text = result.handFixAdd;
             }
           }
-          // Refiner: используем refiner_note, фоллбэк на Z-Image базу
+
+          // Refiner — копия Z-Image или сокращённая версия
           if (result.refinerNote.isNotEmpty && !result.refinerNote.contains('копия')) {
-            refinerCtrl.text = result.refinerNote;
+            if (result.refinerNeg.isNotEmpty) {
+              refinerCtrl.text = '${result.refinerNote}, ${result.refinerNeg}';
+            } else {
+              refinerCtrl.text = result.refinerNote;
+            }
           } else {
-            refinerCtrl.text = result.zimageBase;
+            refinerCtrl.text = zimageBaseCtrl.text; // уже с дополнениями
           }
-          // Refiner негатив
-          if (result.refinerNeg.isNotEmpty) {
-            refinerNegCtrl.text = result.refinerNeg;
-          } else if (result.zimageNeg.isNotEmpty) {
-            refinerNegCtrl.text = result.zimageNeg;
-          }
+          // Refiner негатив очищаем — Z-Image его игнорирует
+          refinerNegCtrl.text = '';
         });
       },
       onStateChanged: (generating, elapsedTime) {
