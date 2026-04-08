@@ -241,10 +241,10 @@ class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key, this.onRepeat});
 
   @override
-  State<HistoryScreen> createState() => _HistoryScreenState();
+  State<HistoryScreen> createState() => HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen>
+class HistoryScreenState extends State<HistoryScreen>
     with SingleTickerProviderStateMixin {
   List<HistoryEntry> _entries = [];
   bool _loading = true;
@@ -252,6 +252,9 @@ class _HistoryScreenState extends State<HistoryScreen>
   bool _compareMode = false;
   final List<int> _compareSelection = [];
   late AnimationController _animCtrl;
+
+  /// Публичный метод для внешнего обновления
+  void refresh() => _load();
 
   @override
   void initState() {
@@ -366,7 +369,6 @@ class _HistoryScreenState extends State<HistoryScreen>
       decoration: GlassTheme.scaffoldDecoration,
       child: Column(
         children: [
-          // Заголовок
           GlassTheme.card(
             margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -391,7 +393,6 @@ class _HistoryScreenState extends State<HistoryScreen>
                 const SizedBox(width: 8),
                 GlassTheme.chip('${_entries.length}', Colors.purple),
                 const Spacer(),
-                // Фильтр избранного
                 if (favCount > 0)
                   GestureDetector(
                     onTap: () => setState(() => _showFavOnly = !_showFavOnly),
@@ -420,7 +421,6 @@ class _HistoryScreenState extends State<HistoryScreen>
                       ),
                     ),
                   ),
-                // Кнопка сравнения
                 if (_entries.length >= 2)
                   GestureDetector(
                     onTap: _toggleCompareMode,
@@ -463,8 +463,6 @@ class _HistoryScreenState extends State<HistoryScreen>
               ],
             ),
           ),
-
-          // Подсказка сравнения
           if (_compareMode)
             GlassTheme.card(
               margin: const EdgeInsets.fromLTRB(12, 4, 12, 4),
@@ -515,8 +513,6 @@ class _HistoryScreenState extends State<HistoryScreen>
                 ],
               ),
             ),
-
-          // Список
           Expanded(
             child: _loading
                 ? const Center(
@@ -641,6 +637,7 @@ class _HistoryCardState extends State<_HistoryCard> {
       });
     }
   }
+
   Future<void> _shareFirstImage() async {
     final images = await widget.entry.loadImages();
     if (images.isEmpty || !mounted) return;
@@ -700,7 +697,6 @@ class _HistoryCardState extends State<_HistoryCard> {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              // Чекбокс сравнения
               if (widget.compareMode)
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
@@ -724,8 +720,6 @@ class _HistoryCardState extends State<_HistoryCard> {
                         : null,
                   ),
                 ),
-
-              // Превью
               Hero(
                 tag: 'history_thumb_${widget.index}',
                 child: Container(
@@ -769,8 +763,6 @@ class _HistoryCardState extends State<_HistoryCard> {
                 ),
               ),
               const SizedBox(width: 12),
-
-              // Инфо
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -826,8 +818,6 @@ class _HistoryCardState extends State<_HistoryCard> {
                 ),
               ),
               const SizedBox(width: 8),
-
-              // Кнопки
               if (!widget.compareMode)
                 Column(
                   children: [

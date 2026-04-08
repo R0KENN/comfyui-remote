@@ -1248,6 +1248,7 @@ class _HomeScreenState extends State<HomeScreen>
         return LogsScreen(serverAddress: serverCtrl.text);
       case 3:
         return HistoryScreen(
+          key: UniqueKey(),
           onRepeat: () {
             setState(() => currentTab = 0);
             generate();
