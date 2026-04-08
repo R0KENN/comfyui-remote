@@ -284,40 +284,22 @@ on State<T>, HomeStateMixin<T> {
   // ===================== ГАЛЕРЕЯ РЕЗУЛЬТАТОВ =====================
 
   void _showResultGallery(List<Uint8List> images, GenerationInfo info) {
+    if (!mounted) return;
     Navigator.of(context).push(
-      PageRouteBuilder(
-        opaque: false,
-        barrierColor: Colors.black.withValues(alpha: 0.3),
-        transitionDuration: const Duration(milliseconds: 400),
-        reverseTransitionDuration: const Duration(milliseconds: 300),
-        pageBuilder: (context, animation, secondaryAnimation) {
-          return GalleryScreen(
-            images: images,
-            generationTime: lastTime,
-            info: info,
-            onRepeat: () {
-              Navigator.of(context).pop();
-              generate();
-            },
-          );
-        },
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          final curved =
-          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
-          return FadeTransition(
-            opacity: curved,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 0.05),
-                end: Offset.zero,
-              ).animate(curved),
-              child: child,
-            ),
-          );
-        },
+      MaterialPageRoute(
+        builder: (_) => GalleryScreen(
+          images: images,
+          generationTime: lastTime,
+          info: info,
+          onRepeat: () {
+            Navigator.of(context).pop();
+            generate();
+          },
+        ),
       ),
     );
   }
+
 
   // ===================== ГЕНЕРАЦИЯ =====================
 

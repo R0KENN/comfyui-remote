@@ -189,14 +189,14 @@ class HistoryStorage {
     list.insert(0, entry);
 
     while (list.length > maxEntries) {
-      final old = list.removeLast();
-      if (!old.isFavorite) {
-        for (final path in old.imagePaths) {
-          try {
-            final file = File(path);
-            if (await file.exists()) await file.delete();
-          } catch (_) {}
-        }
+      final idx = list.lastIndexWhere((e) => !e.isFavorite);
+      if (idx < 0) break; // все избранные — не удаляем
+      final old = list.removeAt(idx);
+      for (final path in old.imagePaths) {
+        try {
+          final file = File(path);
+          if (await file.exists()) await file.delete();
+        } catch (_) {}
       }
     }
 
