@@ -378,6 +378,7 @@ on State<T>, HomeStateMixin<T> {
       final usedSeed = service.lastSeed;
       final promptId = await service.submitPrompt(workflow);
 
+      await BackgroundGenerationService.savePromptId(promptId);
       await BackgroundGenerationService.startTracking(
           serverCtrl.text, promptId);
 

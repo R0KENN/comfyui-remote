@@ -921,7 +921,12 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           BottomNav(
             currentTab: currentTab,
-            onTabChanged: (t) => setState(() => currentTab = t),
+            onTabChanged: (t) {
+              setState(() {
+                if (t == 3) historyKey = UniqueKey();
+                currentTab = t;
+              });
+            },
           ),
         ],
       ),
@@ -1248,7 +1253,7 @@ class _HomeScreenState extends State<HomeScreen>
         return LogsScreen(serverAddress: serverCtrl.text);
       case 3:
         return HistoryScreen(
-          key: UniqueKey(),
+          key: historyKey,
           onRepeat: () {
             setState(() => currentTab = 0);
             generate();

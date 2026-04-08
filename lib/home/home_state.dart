@@ -52,6 +52,8 @@ mixin HomeStateMixin<T extends StatefulWidget> on State<T> {
 
   int currentTab = 0;
 
+  Key historyKey = UniqueKey();
+
   List<String> sectionOrder = [
     'settings',
     'loras',
