@@ -48,6 +48,43 @@ class _GalleryScreenState extends State<GalleryScreen>
   late AnimationController _animCtrl;
   bool _seedSaved = false;
 
+  Widget _actionChip(
+      IconData icon, String label, Color color, VoidCallback onTap) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color.withValues(alpha: 0.18)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: color),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.2,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -246,82 +283,174 @@ class _GalleryScreenState extends State<GalleryScreen>
                 ),
               ),
 
-              // ── Info card ──
+              // ── Info card with gradient background ──
               if (widget.info != null)
                 GlassTheme.fadeSlideIn(
                   index: 0,
                   controller: _animCtrl,
-                  child: GlassTheme.card(
+                  child: Container(
                     margin: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    borderColor: Colors.amber.withValues(alpha: 0.15),
-                    child: Row(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(22),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          GlassTheme.accentPurple.withValues(alpha: 0.15),
+                          GlassTheme.accentBlue.withValues(alpha: 0.08),
+                          Colors.transparent,
+                        ],
+                      ),
+                      border: Border.all(
+                        color: GlassTheme.accentPurple.withValues(alpha: 0.15),
+                        width: 0.5,
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Seed
-                        GestureDetector(
-                          onTap: _copySeed,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.amber.withValues(alpha: 0.25)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.tag, size: 14, color: Colors.amber),
-                                const SizedBox(width: 4),
-                                Text('${widget.info!.seed}',
-                                    style: const TextStyle(
-                                        fontSize: 13, color: Colors.amber, fontWeight: FontWeight.bold)),
-                                const SizedBox(width: 4),
-                                Icon(Icons.copy, size: 12, color: Colors.amber.withValues(alpha: 0.5)),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        // Кнопка сохранить сид
-                        GestureDetector(
-                          onTap: _seedSaved ? null : _saveSeed,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: _seedSaved
-                                  ? const Color(0xFFFFD60A).withValues(alpha: 0.15)
-                                  : Colors.white.withValues(alpha: 0.04),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: _seedSaved
-                                    ? const Color(0xFFFFD60A).withValues(alpha: 0.3)
-                                    : Colors.white.withValues(alpha: 0.08),
+                        // Seed row
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: _copySeed,
+                              child: Text(
+                                '${widget.info!.seed}',
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  color: GlassTheme.accentYellow,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'monospace',
+                                  letterSpacing: -0.5,
+                                ),
                               ),
                             ),
-                            child: Icon(
-                              _seedSaved ? Icons.star_rounded : Icons.star_outline_rounded,
-                              size: 18,
-                              color: _seedSaved
-                                  ? const Color(0xFFFFD60A)
-                                  : Colors.white.withValues(alpha: 0.3),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: _copySeed,
+                              child: Icon(Icons.copy_rounded,
+                                  size: 16,
+                                  color: GlassTheme.accentYellow
+                                      .withValues(alpha: 0.5)),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: _seedSaved ? null : _saveSeed,
+                              child: AnimatedContainer(
+                                duration:
+                                const Duration(milliseconds: 250),
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: _seedSaved
+                                      ? const Color(0xFFFFD60A)
+                                      .withValues(alpha: 0.15)
+                                      : Colors.white
+                                      .withValues(alpha: 0.04),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: _seedSaved
+                                        ? const Color(0xFFFFD60A)
+                                        .withValues(alpha: 0.3)
+                                        : Colors.white
+                                        .withValues(alpha: 0.08),
+                                  ),
+                                ),
+                                child: Icon(
+                                  _seedSaved
+                                      ? Icons.star_rounded
+                                      : Icons.star_outline_rounded,
+                                  size: 16,
+                                  color: _seedSaved
+                                      ? const Color(0xFFFFD60A)
+                                      : Colors.white
+                                      .withValues(alpha: 0.3),
+                                ),
+                              ),
+                            ),
+                            const Spacer(),
+                          ],
                         ),
-                        const Spacer(),
-                        Icon(Icons.timer, size: 13, color: Colors.grey[500]),
-                        const SizedBox(width: 4),
-                        Text(widget.generationTime,
-                            style: TextStyle(fontSize: 12, color: Colors.grey[400])),
-                        const SizedBox(width: 12),
-                        Icon(Icons.calendar_today, size: 13, color: Colors.grey[500]),
-                        const SizedBox(width: 4),
-                        Text('${widget.info!.date}  ${widget.info!.time}',
-                            style: TextStyle(fontSize: 12, color: Colors.grey[400])),
+                        const SizedBox(height: 6),
+                        // Time info row
+                        Row(
+                          children: [
+                            Icon(Icons.timer_rounded,
+                                size: 13,
+                                color: GlassTheme.textTertiary),
+                            const SizedBox(width: 4),
+                            Text(widget.generationTime,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: GlassTheme.textSecondary)),
+                            const SizedBox(width: 16),
+                            Icon(Icons.calendar_today_rounded,
+                                size: 13,
+                                color: GlassTheme.textTertiary),
+                            const SizedBox(width: 4),
+                            Text(
+                                '${widget.info!.date}  ${widget.info!.time}',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: GlassTheme.textSecondary)),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        // Action chips row
+                        Row(
+                          children: [
+                            _actionChip(
+                              Icons.share_rounded,
+                              'Поделиться',
+                              GlassTheme.accentCyan,
+                                  () => _shareImage(
+                                  widget.images[_currentPage]),
+                            ),
+                            const SizedBox(width: 6),
+                            _actionChip(
+                              Icons.save_alt_rounded,
+                              'Сохранить',
+                              GlassTheme.accentGreen,
+                                  () => _saveImage(
+                                  widget.images[_currentPage]),
+                            ),
+                            if (widget.images.length > 1) ...[
+                              const SizedBox(width: 6),
+                              _actionChip(
+                                Icons.compare_rounded,
+                                'Сравнить',
+                                GlassTheme.accentBlue,
+                                    () {
+                                  HapticFeedback.selectionClick();
+                                  setState(() {
+                                    _compareMode = true;
+                                    _compareIndex =
+                                    _currentPage == 0 ? 1 : 0;
+                                  });
+                                },
+                              ),
+                            ],
+                            if (widget.onRepeat != null) ...[
+                              const SizedBox(width: 6),
+                              _actionChip(
+                                Icons.replay_rounded,
+                                'Повторить',
+                                GlassTheme.accentGreen,
+                                    () {
+                                  HapticFeedback.lightImpact();
+                                  Navigator.pop(context);
+                                  widget.onRepeat!();
+                                },
+                              ),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
                   ),
                 ),
+
 
               // ── Image viewer ──
               Expanded(
@@ -338,11 +467,14 @@ class _GalleryScreenState extends State<GalleryScreen>
                           Navigator.push(
                             context,
                             PageRouteBuilder(
-                              pageBuilder: (_, anim, secondaryAnim) => FadeTransition(
-                                opacity: anim,
-                                child: _FullScreenImage(image: widget.images[index]),
-                              ),
-                              transitionDuration: const Duration(milliseconds: 300),
+                              pageBuilder: (_, anim, secondaryAnim) =>
+                                  FadeTransition(
+                                    opacity: anim,
+                                    child: _FullScreenImage(
+                                        image: widget.images[index]),
+                                  ),
+                              transitionDuration:
+                              const Duration(milliseconds: 300),
                             ),
                           );
                         },
@@ -354,7 +486,8 @@ class _GalleryScreenState extends State<GalleryScreen>
                             child: Center(
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
-                                child: Image.memory(widget.images[index], fit: BoxFit.contain),
+                                child: Image.memory(widget.images[index],
+                                    fit: BoxFit.contain),
                               ),
                             ),
                           ),

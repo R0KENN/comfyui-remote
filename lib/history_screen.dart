@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:share_plus/share_plus.dart';
 import 'gallery_screen.dart';
 import 'glass_theme.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:flutter/services.dart';
+
+// ===================== Модель =====================
 
 class HistoryEntry {
   final List<String> imagePaths;
@@ -109,6 +111,8 @@ class HistoryEntry {
   }
 }
 
+// ===================== Хранилище =====================
+
 class HistoryStorage {
   static const _key = 'generation_history_v2';
   static const _legacyKey = 'generation_history';
@@ -190,7 +194,7 @@ class HistoryStorage {
 
     while (list.length > maxEntries) {
       final idx = list.lastIndexWhere((e) => !e.isFavorite);
-      if (idx < 0) break; // все избранные — не удаляем
+      if (idx < 0) break;
       final old = list.removeAt(idx);
       for (final path in old.imagePaths) {
         try {
@@ -233,7 +237,7 @@ class HistoryStorage {
   }
 }
 
-// ===================== ЭКРАН ИСТОРИИ =====================
+// ===================== Экран истории =====================
 
 class HistoryScreen extends StatefulWidget {
   final void Function()? onRepeat;
@@ -253,7 +257,6 @@ class HistoryScreenState extends State<HistoryScreen>
   final List<int> _compareSelection = [];
   late AnimationController _animCtrl;
 
-  /// Публичный метод для внешнего обновления
   void refresh() => _load();
 
   @override
@@ -305,10 +308,10 @@ class HistoryScreenState extends State<HistoryScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Очистить всё?',
-            style: TextStyle(color: Colors.white)),
+        title:
+        const Text('Очистить?', style: TextStyle(color: Colors.white)),
         content: const Text(
-            'Все записи истории будут удалены.',
+            'Все записи будут удалены.',
             style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
@@ -317,7 +320,8 @@ class HistoryScreenState extends State<HistoryScreen>
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Удалить', style: TextStyle(color: Colors.red)),
+            child:
+            const Text('Удалить', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -353,8 +357,8 @@ class HistoryScreenState extends State<HistoryScreen>
         builder: (_) => _CompareScreen(
           imageA: imagesA.first,
           imageB: imagesB.first,
-          infoA: '${a.date} ${a.time} • Seed: ${a.seed}',
-          infoB: '${b.date} ${b.time} • Seed: ${b.seed}',
+          infoA: '${a.date} ${a.time}  Seed: ${a.seed}',
+          infoB: '${b.date} ${b.time}  Seed: ${b.seed}',
         ),
       ),
     );
@@ -369,9 +373,11 @@ class HistoryScreenState extends State<HistoryScreen>
       decoration: GlassTheme.scaffoldDecoration,
       child: Column(
         children: [
+          // ── Header ──
           GlassTheme.card(
             margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             borderColor: Colors.purple.withValues(alpha: 0.2),
             child: Row(
               children: [
@@ -381,7 +387,7 @@ class HistoryScreenState extends State<HistoryScreen>
                     color: Colors.purple.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.history,
+                  child: const Icon(Icons.history_rounded,
                       color: Colors.purple, size: 20),
                 ),
                 const SizedBox(width: 10),
@@ -395,18 +401,21 @@ class HistoryScreenState extends State<HistoryScreen>
                 const Spacer(),
                 if (favCount > 0)
                   GestureDetector(
-                    onTap: () => setState(() => _showFavOnly = !_showFavOnly),
+                    onTap: () =>
+                        setState(() => _showFavOnly = !_showFavOnly),
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       margin: const EdgeInsets.only(right: 6),
                       decoration: BoxDecoration(
                         color: _showFavOnly
-                            ? const Color(0xFFFFD60A).withValues(alpha: 0.15)
+                            ? const Color(0xFFFFD60A)
+                            .withValues(alpha: 0.15)
                             : Colors.white.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: _showFavOnly
-                              ? const Color(0xFFFFD60A).withValues(alpha: 0.3)
+                              ? const Color(0xFFFFD60A)
+                              .withValues(alpha: 0.3)
                               : const Color(0x0AFFFFFF),
                         ),
                       ),
@@ -429,12 +438,14 @@ class HistoryScreenState extends State<HistoryScreen>
                       margin: const EdgeInsets.only(right: 6),
                       decoration: BoxDecoration(
                         color: _compareMode
-                            ? const Color(0xFF5AC8FA).withValues(alpha: 0.15)
+                            ? const Color(0xFF5AC8FA)
+                            .withValues(alpha: 0.15)
                             : Colors.white.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: _compareMode
-                              ? const Color(0xFF5AC8FA).withValues(alpha: 0.3)
+                              ? const Color(0xFF5AC8FA)
+                              .withValues(alpha: 0.3)
                               : const Color(0x0AFFFFFF),
                         ),
                       ),
@@ -463,11 +474,15 @@ class HistoryScreenState extends State<HistoryScreen>
               ],
             ),
           ),
+
+          // ── Compare bar ──
           if (_compareMode)
             GlassTheme.card(
               margin: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              borderColor: const Color(0xFF5AC8FA).withValues(alpha: 0.2),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 10),
+              borderColor:
+              const Color(0xFF5AC8FA).withValues(alpha: 0.2),
               child: Row(
                 children: [
                   const Icon(Icons.compare_rounded,
@@ -475,7 +490,7 @@ class HistoryScreenState extends State<HistoryScreen>
                   const SizedBox(width: 8),
                   Text(
                     _compareSelection.isEmpty
-                        ? 'Выберите 2 генерации для сравнения'
+                        ? 'Выберите 2 записи для сравнения'
                         : 'Выбрано: ${_compareSelection.length}/2',
                     style: const TextStyle(
                         fontSize: 12,
@@ -490,8 +505,8 @@ class HistoryScreenState extends State<HistoryScreen>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color:
-                          const Color(0xFF5AC8FA).withValues(alpha: 0.15),
+                          color: const Color(0xFF5AC8FA)
+                              .withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                               color: const Color(0xFF5AC8FA)
@@ -513,10 +528,13 @@ class HistoryScreenState extends State<HistoryScreen>
                 ],
               ),
             ),
+
+          // ── List ──
           Expanded(
             child: _loading
                 ? const Center(
-                child: CircularProgressIndicator(color: Colors.amber))
+                child:
+                CircularProgressIndicator(color: Colors.amber))
                 : filtered.isEmpty
                 ? Center(
               child: Column(
@@ -534,14 +552,16 @@ class HistoryScreenState extends State<HistoryScreen>
                           ? 'Нет избранных'
                           : 'Пусто',
                       style: TextStyle(
-                          color: Colors.grey[600], fontSize: 16)),
+                          color: Colors.grey[600],
+                          fontSize: 16)),
                   const SizedBox(height: 4),
                   Text(
                       _showFavOnly
-                          ? 'Добавьте генерации в избранное'
-                          : 'Генерации появятся здесь',
+                          ? 'Добавьте в избранное'
+                          : 'Начните генерацию',
                       style: TextStyle(
-                          color: Colors.grey[700], fontSize: 12)),
+                          color: Colors.grey[700],
+                          fontSize: 12)),
                 ],
               ),
             )
@@ -549,8 +569,8 @@ class HistoryScreenState extends State<HistoryScreen>
               onRefresh: _load,
               color: Colors.amber,
               child: ListView.builder(
-                padding:
-                const EdgeInsets.fromLTRB(12, 4, 12, 80),
+                padding: const EdgeInsets.fromLTRB(
+                    12, 4, 12, 80),
                 itemCount: filtered.length,
                 itemBuilder: (context, index) {
                   final entry = filtered[index];
@@ -570,12 +590,14 @@ class HistoryScreenState extends State<HistoryScreen>
                         setState(() {
                           if (isSelected) {
                             _compareSelection.remove(index);
-                          } else if (_compareSelection.length < 2) {
+                          } else if (_compareSelection.length <
+                              2) {
                             _compareSelection.add(index);
                           }
                         });
                       },
-                      onDelete: () => _deleteEntry(realIndex),
+                      onDelete: () =>
+                          _deleteEntry(realIndex),
                       onRepeat: widget.onRepeat,
                       onToggleFav: () =>
                           _toggleFavorite(realIndex),
@@ -591,7 +613,7 @@ class HistoryScreenState extends State<HistoryScreen>
   }
 }
 
-// ===================== КАРТОЧКА ИСТОРИИ =====================
+// ===================== Карточка истории =====================
 
 class _HistoryCard extends StatefulWidget {
   final HistoryEntry entry;
@@ -661,6 +683,14 @@ class _HistoryCardState extends State<_HistoryCard> {
   Widget build(BuildContext context) {
     final entry = widget.entry;
 
+    final accentColors = [
+      GlassTheme.accentGreen,
+      GlassTheme.accentBlue,
+      GlassTheme.accentCyan,
+      GlassTheme.accentPurple,
+    ];
+    final accentColor = accentColors[widget.index % accentColors.length];
+
     return GlassTheme.card(
       margin: const EdgeInsets.only(bottom: 8),
       padding: EdgeInsets.zero,
@@ -668,9 +698,9 @@ class _HistoryCardState extends State<_HistoryCard> {
           ? const Color(0xFF5AC8FA).withValues(alpha: 0.4)
           : entry.isFavorite
           ? const Color(0xFFFFD60A).withValues(alpha: 0.15)
-          : Colors.purple.withValues(alpha: 0.12),
+          : accentColor.withValues(alpha: 0.12),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(22),
         onTap: widget.compareMode
             ? widget.onTapCompare
             : () async {
@@ -697,6 +727,7 @@ class _HistoryCardState extends State<_HistoryCard> {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
+              // Compare checkbox
               if (widget.compareMode)
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
@@ -720,39 +751,40 @@ class _HistoryCardState extends State<_HistoryCard> {
                         : null,
                   ),
                 ),
+
+              // Круглая миниатюра
               Hero(
                 tag: 'history_thumb_${widget.index}',
                 child: Container(
-                  width: 72,
-                  height: 72,
+                  width: 64,
+                  height: 64,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
+                    shape: BoxShape.circle,
                     border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.08)),
+                        color: accentColor.withValues(alpha: 0.25),
+                        width: 2),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.purple.withValues(alpha: 0.1),
+                        color: accentColor.withValues(alpha: 0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(11),
+                  child: ClipOval(
                     child: _thumbnail != null
                         ? Image.memory(_thumbnail!,
-                        width: 72, height: 72, fit: BoxFit.cover)
+                        width: 64, height: 64, fit: BoxFit.cover)
                         : Container(
                       color: const Color(0xFF1A1A1A),
                       child: _loaded
                           ? const Icon(Icons.broken_image,
-                          color: Color(0x33FFFFFF), size: 28)
+                          color: Color(0x33FFFFFF), size: 24)
                           : const Center(
                         child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child:
-                          CircularProgressIndicator(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
                             strokeWidth: 1.5,
                             color: Color(0x33FFFFFF),
                           ),
@@ -763,54 +795,57 @@ class _HistoryCardState extends State<_HistoryCard> {
                 ),
               ),
               const SizedBox(width: 12),
+
+              // Информация
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.tag,
-                            size: 12, color: Colors.amber),
-                        const SizedBox(width: 4),
-                        Text('${entry.seed}',
-                            style: const TextStyle(
-                                fontSize: 13,
-                                color: Colors.amber,
-                                fontWeight: FontWeight.bold)),
+                        Text(
+                          '#${entry.seed}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: GlassTheme.accentYellow,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
                         const Spacer(),
                         if (entry.imagePaths.length > 1)
                           GlassTheme.chip(
                             '${entry.imagePaths.length} фото',
-                            Colors.blue,
-                            icon: Icons.photo_library,
+                            GlassTheme.accentBlue,
+                            icon: Icons.photo_library_rounded,
                           ),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        Icon(Icons.calendar_today,
-                            size: 11, color: Colors.grey[500]),
+                        const Icon(Icons.calendar_today_rounded,
+                            size: 11, color: GlassTheme.textTertiary),
                         const SizedBox(width: 3),
                         Text('${entry.date}  ${entry.time}',
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey[500])),
+                                color: GlassTheme.textTertiary)),
                         const SizedBox(width: 10),
-                        Icon(Icons.timer,
-                            size: 11, color: Colors.grey[600]),
+                        const Icon(Icons.timer_rounded,
+                            size: 11, color: GlassTheme.textTertiary),
                         const SizedBox(width: 3),
                         Text(entry.generationTime,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey[600])),
+                                color: GlassTheme.textTertiary)),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Text(
                       entry.promptPreview,
-                      style: TextStyle(
-                          fontSize: 11, color: Colors.grey[600]),
+                      style: const TextStyle(
+                          fontSize: 11, color: GlassTheme.textTertiary),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -818,6 +853,8 @@ class _HistoryCardState extends State<_HistoryCard> {
                 ),
               ),
               const SizedBox(width: 8),
+
+              // Кнопки
               if (!widget.compareMode)
                 Column(
                   children: [
@@ -849,12 +886,14 @@ class _HistoryCardState extends State<_HistoryCard> {
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withValues(alpha: 0.08),
+                          color: GlassTheme.accentBlue
+                              .withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(Icons.share_rounded,
                             size: 14,
-                            color: Colors.blue.withValues(alpha: 0.6)),
+                            color: GlassTheme.accentBlue
+                                .withValues(alpha: 0.6)),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -863,12 +902,14 @@ class _HistoryCardState extends State<_HistoryCard> {
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.08),
+                          color: GlassTheme.accentRed
+                              .withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(Icons.close,
+                        child: Icon(Icons.close_rounded,
                             size: 14,
-                            color: Colors.red.withValues(alpha: 0.5)),
+                            color: GlassTheme.accentRed
+                                .withValues(alpha: 0.5)),
                       ),
                     ),
                   ],
@@ -881,7 +922,7 @@ class _HistoryCardState extends State<_HistoryCard> {
   }
 }
 
-// ===================== ЭКРАН СРАВНЕНИЯ =====================
+// ===================== Экран сравнения =====================
 
 class _CompareScreen extends StatelessWidget {
   final Uint8List imageA;
@@ -920,13 +961,15 @@ class _CompareScreen extends StatelessWidget {
                   Text(infoA,
                       style: TextStyle(
                           fontSize: 11,
-                          color: Colors.white.withValues(alpha: 0.4))),
+                          color:
+                          Colors.white.withValues(alpha: 0.4))),
                   const SizedBox(height: 4),
                   Expanded(
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: InteractiveViewer(
-                        child: Image.memory(imageA, fit: BoxFit.contain),
+                        child: Image.memory(imageA,
+                            fit: BoxFit.contain),
                       ),
                     ),
                   ),
@@ -947,13 +990,15 @@ class _CompareScreen extends StatelessWidget {
                   Text(infoB,
                       style: TextStyle(
                           fontSize: 11,
-                          color: Colors.white.withValues(alpha: 0.4))),
+                          color:
+                          Colors.white.withValues(alpha: 0.4))),
                   const SizedBox(height: 4),
                   Expanded(
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: InteractiveViewer(
-                        child: Image.memory(imageB, fit: BoxFit.contain),
+                        child: Image.memory(imageB,
+                            fit: BoxFit.contain),
                       ),
                     ),
                   ),

@@ -1,3 +1,4 @@
+// lib/home/prompt_section.dart
 import 'package:flutter/material.dart';
 import '../glass_theme.dart';
 
@@ -101,8 +102,6 @@ class PromptSection extends StatelessWidget {
               ),
             ),
           ),
-
-          // NEG индикатор
           if (negCtrl.text.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(right: 6),
@@ -126,41 +125,45 @@ class PromptSection extends StatelessWidget {
                 ),
               ),
             ),
-
-          // Переключатель ВКЛ/ВЫКЛ
           if (hasToggle)
             GestureDetector(
               onTap: onToggleEnabled,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Container(
                 margin: const EdgeInsets.only(right: 6),
+                width: 36,
+                height: 20,
                 decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
                   color: isEnabled
-                      ? const Color(0xFF30D158).withValues(alpha: 0.08)
-                      : const Color(0xFFFF3B30).withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
+                      ? const Color(0xFF30D158).withValues(alpha: 0.2)
+                      : Colors.white.withValues(alpha: 0.04),
                   border: Border.all(
                     color: isEnabled
-                        ? const Color(0xFF30D158).withValues(alpha: 0.2)
-                        : const Color(0xFFFF3B30).withValues(alpha: 0.2),
+                        ? const Color(0xFF30D158).withValues(alpha: 0.4)
+                        : const Color(0x15FFFFFF),
                     width: 0.5,
                   ),
                 ),
-                child: Text(
-                  isEnabled ? 'ВКЛ' : 'ВЫКЛ',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                    color: isEnabled
-                        ? const Color(0xFF30D158)
-                        : const Color(0xFFFF3B30),
-                    letterSpacing: 0.3,
+                child: AnimatedAlign(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  alignment: isEnabled
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isEnabled
+                          ? const Color(0xFF30D158)
+                          : Colors.white.withValues(alpha: 0.2),
+                    ),
                   ),
                 ),
               ),
             ),
-
           AnimatedRotation(
             turns: isExpanded ? 0.5 : 0,
             duration: const Duration(milliseconds: 300),
@@ -176,107 +179,304 @@ class PromptSection extends StatelessWidget {
   Widget _buildBody(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: Column(children: [
-        // Позитивный промпт
-        _buildField(
-          label: 'Позитивный промпт',
-          ctrl: posCtrl,
-          lines: posLines,
-          hint: posHint,
-          showClear: true,
-          accentColor: color,
-          fullscreenTitle: '$title — Позитивный',
-          fullscreenColor: color,
-          context: context,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // ── Позитивный промпт — label + actions row ──
+        Row(
+          children: [
+            Text(
+              'ПОЗИТИВНЫЙ ПРОМПТ',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: color.withValues(alpha: 0.7),
+                letterSpacing: 1.0,
+              ),
+            ),
+            const Spacer(),
+            GestureDetector(
+              onTap: () => onOpenFullscreen(
+                sectionKey,
+                '$title — Позитивный',
+                color,
+                posCtrl,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(Icons.open_in_full_rounded,
+                    size: 14, color: Colors.white.withValues(alpha: 0.3)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => posCtrl.clear(),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.close_rounded,
+                        size: 12, color: Colors.white.withValues(alpha: 0.3)),
+                    const SizedBox(width: 3),
+                    Text('Очистить',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.white.withValues(alpha: 0.3),
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
+        const SizedBox(height: 8),
 
-        ?extraWidget,
+        // Поле позитивного промпта
+        TextField(
+          controller: posCtrl,
+          maxLines: posLines,
+          style: const TextStyle(
+            fontSize: 12.5,
+            color: Color(0xDDFFFFFF),
+            letterSpacing: -0.2,
+            height: 1.5,
+          ),
+          decoration: InputDecoration(
+            hintText: posHint,
+            hintStyle: TextStyle(
+              fontSize: 11,
+              color: Colors.white.withValues(alpha: 0.1),
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            enabledBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Color(0x0AFFFFFF)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: color.withValues(alpha: 0.3)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.02),
+            contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            isDense: true,
+          ),
+        ),
+        const SizedBox(height: 12),
 
-        // Кнопка негатива
-        _buildNegButton(),
+        if (extraWidget != null) ...[
+          extraWidget!,
+          const SizedBox(height: 8),
+        ],
 
-        // Негативный промпт
+        // ── Негативный промпт — label с toggle ──
+        Row(
+          children: [
+            Text(
+              'НЕГАТИВНЫЙ ПРОМПТ',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFFFF453A).withValues(alpha: 0.7),
+                letterSpacing: 1.0,
+              ),
+            ),
+            if (pinnedNegTags.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding:
+                const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFD60A).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: const Color(0xFFFFD60A).withValues(alpha: 0.15),
+                    width: 0.5,
+                  ),
+                ),
+                child: Text('${pinnedNegTags.length}',
+                  style: const TextStyle(
+                    fontSize: 9,
+                    color: Color(0xFFFFD60A),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+            const Spacer(),
+            // Круглый переключатель — как в макете
+            GestureDetector(
+              onTap: onToggleNeg,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: negVisible
+                      ? const Color(0xFFFF453A).withValues(alpha: 0.15)
+                      : Colors.white.withValues(alpha: 0.04),
+                  border: Border.all(
+                    color: negVisible
+                        ? const Color(0xFFFF453A).withValues(alpha: 0.4)
+                        : const Color(0x15FFFFFF),
+                    width: 0.5,
+                  ),
+                ),
+                child: Icon(
+                  negVisible
+                      ? Icons.remove_rounded
+                      : Icons.add_rounded,
+                  size: 16,
+                  color: negVisible
+                      ? const Color(0xFFFF453A)
+                      : Colors.white.withValues(alpha: 0.3),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        // Негативный промпт (раскрывающийся)
         AnimatedCrossFade(
           firstChild: const SizedBox(width: double.infinity, height: 0),
           secondChild: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildField(
-                label: 'Негативный промпт',
-                ctrl: negCtrl,
-                lines: negLines,
-                hint: negHint,
-                accentColor: const Color(0xFFFF3B30),
-                fullscreenTitle: '$title — Негативный',
-                fullscreenColor: const Color(0xFFFF3B30),
-                context: context,
-              ),
-
-              // Закреплённые теги
+              // Закреплённые теги — тёмные чипы (как в макете)
               if (pinnedNegTags.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    children: pinnedNegTags.map((tag) => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFD60A).withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: const Color(0xFFFFD60A).withValues(alpha: 0.15),
-                          width: 0.5,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.push_pin_rounded,
-                              size: 10, color: Color(0xFFFFD60A)),
-                          const SizedBox(width: 4),
-                          Text(tag,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: Color(0xFFFFD60A),
-                              letterSpacing: -0.2,
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: pinnedNegTags.asMap().entries.map((e) {
+                      final idx = e.key;
+                      final tag = e.value;
+                      return GestureDetector(
+                        onTap: () {
+                          final updated = List<String>.from(pinnedNegTags);
+                          updated.removeAt(idx);
+                          onPinnedChanged(updated);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.1),
+                              width: 0.5,
                             ),
                           ),
-                        ],
-                      ),
-                    )).toList(),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.push_pin_rounded,
+                                  size: 11, color: Color(0xFFFFD60A)),
+                              const SizedBox(width: 5),
+                              Text(tag.toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xDDFFFFFF),
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ),
 
-              // Кнопка закрепить
-              Align(
-                alignment: Alignment.centerRight,
-                child: GestureDetector(
-                  onTap: () => onPinTags(sectionKey, negCtrl),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFD60A).withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: const Color(0xFFFFD60A).withValues(alpha: 0.12),
-                        width: 0.5,
-                      ),
+              // Негативное поле
+              TextField(
+                controller: negCtrl,
+                maxLines: negLines,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: Color(0xDDFFFFFF),
+                  letterSpacing: -0.2,
+                  height: 1.5,
+                ),
+                decoration: InputDecoration(
+                  hintText: negHint,
+                  hintStyle: TextStyle(
+                    fontSize: 11,
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Color(0x0AFFFFFF)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                        color: const Color(0xFFFF3B30).withValues(alpha: 0.3)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.02),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  isDense: true,
+                  suffixIcon: IconButton(
+                    icon: Icon(Icons.open_in_full_rounded,
+                        size: 14,
+                        color: Colors.white.withValues(alpha: 0.2)),
+                    onPressed: () => onOpenFullscreen(
+                      sectionKey,
+                      '$title — Негативный',
+                      const Color(0xFFFF3B30),
+                      negCtrl,
                     ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.push_pin_outlined,
-                            size: 12, color: Color(0xFFFFD60A)),
-                        SizedBox(width: 4),
-                        Text('Закрепить теги',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Color(0xFFFFD60A),
-                            letterSpacing: -0.2,
-                          ),
-                        ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Кнопка "ЗАКРЕПИТЬ ТЕГИ" — полная ширина, яркая
+              GestureDetector(
+                onTap: () => onPinTags(sectionKey, negCtrl),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        color.withValues(alpha: 0.15),
+                        const Color(0xFFBF5AF2).withValues(alpha: 0.1),
                       ],
                     ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: color.withValues(alpha: 0.2),
+                      width: 0.5,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.push_pin_rounded,
+                          size: 14, color: color),
+                      const SizedBox(width: 6),
+                      Text('ЗАКРЕПИТЬ ТЕГИ',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: color,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -288,174 +488,6 @@ class PromptSection extends StatelessWidget {
           duration: const Duration(milliseconds: 250),
         ),
       ]),
-    );
-  }
-
-  Widget _buildField({
-    required String label,
-    required TextEditingController ctrl,
-    required int lines,
-    required BuildContext context,
-    String hint = '',
-    bool showClear = false,
-    Color accentColor = const Color(0xFF8A8AFF),
-    String? fullscreenTitle,
-    Color? fullscreenColor,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Column(children: [
-        TextField(
-          controller: ctrl,
-          maxLines: lines,
-          style: const TextStyle(
-            fontSize: 12.5,
-            color: Color(0xDDFFFFFF),
-            letterSpacing: -0.2,
-            height: 1.5,
-          ),
-          decoration: InputDecoration(
-            labelText: label,
-            labelStyle: const TextStyle(
-              fontSize: 12,
-              color: GlassTheme.textTertiary,
-              letterSpacing: -0.2,
-            ),
-            hintText: hint,
-            hintStyle: TextStyle(
-              fontSize: 11,
-              color: Colors.white.withValues(alpha: 0.1),
-            ),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            enabledBorder: OutlineInputBorder(
-              borderSide: const BorderSide(color: Color(0x0AFFFFFF)),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: accentColor.withValues(alpha: 0.3)),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.02),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            isDense: true,
-            suffixIcon: fullscreenTitle != null
-                ? IconButton(
-              icon: Icon(Icons.fullscreen_rounded,
-                  size: 16, color: Colors.white.withValues(alpha: 0.2)),
-              onPressed: () => onOpenFullscreen(
-                sectionKey,
-                fullscreenTitle,
-                fullscreenColor ?? Colors.white,
-                ctrl,
-              ),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            )
-                : null,
-          ),
-        ),
-        if (showClear && ctrl.text.isNotEmpty)
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: GestureDetector(
-                onTap: () => ctrl.clear(),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.clear_rounded,
-                        size: 12, color: Colors.white.withValues(alpha: 0.25)),
-                    const SizedBox(width: 4),
-                    Text('Очистить',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.white.withValues(alpha: 0.25),
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-      ]),
-    );
-  }
-
-  Widget _buildNegButton() {
-    final pinnedCount = pinnedNegTags.length;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: onToggleNeg,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFF3B30).withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: const Color(0xFFFF3B30).withValues(alpha: 0.1),
-                  width: 0.5,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    negVisible
-                        ? Icons.remove_circle_outline_rounded
-                        : Icons.add_circle_outline_rounded,
-                    size: 14,
-                    color: const Color(0xFFFF453A),
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    negVisible ? 'Скрыть негативный' : 'Негативный промпт',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFFFF453A),
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (pinnedCount > 0) ...[
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFD60A).withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: const Color(0xFFFFD60A).withValues(alpha: 0.15),
-                  width: 0.5,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.push_pin_rounded,
-                      size: 9, color: Color(0xFFFFD60A)),
-                  const SizedBox(width: 3),
-                  Text('$pinnedCount',
-                    style: const TextStyle(
-                      fontSize: 9,
-                      color: Color(0xFFFFD60A),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
     );
   }
 }

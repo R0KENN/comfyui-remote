@@ -138,14 +138,14 @@ class _NavItem extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 3),
-            Text(label,
+            Text(label.toUpperCase(),
               style: TextStyle(
-                fontSize: 9,
-                letterSpacing: -0.2,
+                fontSize: 8,
+                letterSpacing: 0.5,
                 color: active
                     ? const Color(0xFFF0F0F0)
                     : const Color(0xFF4A4A4E),
-                fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
           ],

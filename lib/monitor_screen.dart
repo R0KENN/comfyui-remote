@@ -20,7 +20,6 @@ class _MonitorScreenState extends State<MonitorScreen>
   bool _loading = true;
   int _pingMs = -1;
 
-  // GPU VRAM история для графика
   final List<double> _vramHistory = [];
   static const int _maxHistoryPoints = 30;
 
@@ -54,14 +53,14 @@ class _MonitorScreenState extends State<MonitorScreen>
       final queue = await widget.service.getQueue();
       final history = await widget.service.getHistory();
 
-      // Собираем VRAM историю
       final devices = stats['devices'] as List? ?? [];
       if (devices.isNotEmpty) {
         final d = devices.first;
         final vramTotal = (d['vram_total'] ?? 0) / 1024 / 1024 / 1024;
         final vramFree = (d['vram_free'] ?? 0) / 1024 / 1024 / 1024;
         final vramUsed = vramTotal > 0 ? vramTotal - vramFree : 0.0;
-        final vramPercent = vramTotal > 0 ? (vramUsed / vramTotal * 100) : 0.0;
+        final vramPercent =
+        vramTotal > 0 ? (vramUsed / vramTotal * 100) : 0.0;
 
         _vramHistory.add(vramPercent);
         if (_vramHistory.length > _maxHistoryPoints) {
@@ -92,10 +91,10 @@ class _MonitorScreenState extends State<MonitorScreen>
   }
 
   Color _pingColor(int ms) {
-    if (ms < 0) return Colors.red;
-    if (ms < 100) return Colors.green;
-    if (ms < 300) return Colors.orange;
-    return Colors.red;
+    if (ms < 0) return GlassTheme.accentRed;
+    if (ms < 100) return GlassTheme.accentGreen;
+    if (ms < 300) return const Color(0xFFFF9F0A);
+    return GlassTheme.accentRed;
   }
 
   String _pingText(int ms) {
@@ -109,17 +108,63 @@ class _MonitorScreenState extends State<MonitorScreen>
       decoration: GlassTheme.scaffoldDecoration,
       child: RefreshIndicator(
         onRefresh: _refresh,
-        color: Colors.amber,
+        color: GlassTheme.accentGreen,
         child: _loading
-            ? const Center(
-            child: CircularProgressIndicator(color: Colors.amber))
+            ? Center(
+            child: CircularProgressIndicator(
+                color: GlassTheme.accentGreen))
             : ListView(
           padding: const EdgeInsets.all(12),
           children: [
+            // ── Header bar ──
             GlassTheme.fadeSlideIn(
               index: 0,
               controller: _animCtrl,
-              child: _buildPingBar(),
+              child: GlassTheme.card(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 10),
+                borderColor: _pingMs >= 0
+                    ? GlassTheme.accentGreen.withValues(alpha: 0.2)
+                    : GlassTheme.accentRed.withValues(alpha: 0.2),
+                child: Row(
+                  children: [
+                    const Text(
+                      'ComfyGo',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: GlassTheme.textPrimary,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    GlassTheme.statusBadge(
+                      _pingMs >= 0 ? 'ONLINE' : 'OFFLINE',
+                      _pingMs >= 0
+                          ? GlassTheme.accentGreen
+                          : GlassTheme.accentRed,
+                    ),
+                    const Spacer(),
+                    Icon(Icons.speed_rounded,
+                        color: _pingColor(_pingMs), size: 18),
+                    const SizedBox(width: 6),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: Text(
+                        _pingText(_pingMs),
+                        key: ValueKey(_pingMs),
+                        style: TextStyle(
+                          color: _pingColor(_pingMs),
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
             GlassTheme.fadeSlideIn(
               index: 1,
@@ -148,56 +193,24 @@ class _MonitorScreenState extends State<MonitorScreen>
     );
   }
 
-  // ── Ping ──
-  Widget _buildPingBar() {
-    return GlassTheme.card(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      borderColor: _pingColor(_pingMs).withValues(alpha: 0.3),
-      child: Row(
-        children: [
-          Icon(Icons.speed, color: _pingColor(_pingMs), size: 20),
-          const SizedBox(width: 10),
-          Text('Ping: ',
-              style: TextStyle(color: Colors.grey[400], fontSize: 13)),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: Text(
-              _pingText(_pingMs),
-              key: ValueKey(_pingMs),
-              style: TextStyle(
-                color: _pingColor(_pingMs),
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const Spacer(),
-          GlassTheme.statusBadge(
-            _pingMs >= 0 ? 'Online' : 'Offline',
-            _pingMs >= 0 ? Colors.green : Colors.red,
-          ),
-        ],
-      ),
-    );
-  }
-
   // ── GPU card ──
   Widget _buildGpuCard() {
     final devices = _stats['devices'] as List? ?? [];
     if (devices.isEmpty) {
       return GlassTheme.card(
-        borderColor: Colors.red.withValues(alpha: 0.3),
+        borderColor: GlassTheme.accentRed.withValues(alpha: 0.3),
         child: GlassTheme.sectionTitle(
-            Icons.memory, Colors.red, 'GPU не обнаружен'),
+            Icons.memory_rounded, GlassTheme.accentRed, 'GPU НЕ ОБНАРУЖЕН'),
       );
     }
 
     return GlassTheme.card(
-      borderColor: Colors.green.withValues(alpha: 0.2),
+      borderColor: GlassTheme.accentGreen.withValues(alpha: 0.2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GlassTheme.sectionTitle(Icons.memory, Colors.green, 'GPU'),
+          GlassTheme.sectionTitle(
+              Icons.memory_rounded, GlassTheme.accentGreen, 'GPU'),
           const SizedBox(height: 12),
           ...devices.map((d) {
             final vramTotal = (d['vram_total'] ?? 0) / 1024 / 1024 / 1024;
@@ -215,7 +228,6 @@ class _MonitorScreenState extends State<MonitorScreen>
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Название GPU
                 Text(
                   '${d['name'] ?? 'Unknown'}',
                   style: const TextStyle(
@@ -225,20 +237,21 @@ class _MonitorScreenState extends State<MonitorScreen>
                 ),
                 const SizedBox(height: 2),
                 Text('Тип: ${d['type'] ?? '?'}',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                    style: TextStyle(
+                        color: GlassTheme.textTertiary, fontSize: 12)),
                 const SizedBox(height: 12),
 
                 // VRAM
                 Row(
                   children: [
-                    Icon(Icons.storage,
+                    Icon(Icons.storage_rounded,
                         size: 14,
-                        color: Colors.green.withValues(alpha: 0.7)),
+                        color: GlassTheme.accentGreen.withValues(alpha: 0.7)),
                     const SizedBox(width: 6),
                     Text(
                       'VRAM: ${vramUsed.toStringAsFixed(1)} / ${vramTotal.toStringAsFixed(1)} ГБ',
-                      style:
-                      const TextStyle(color: Colors.white70, fontSize: 13),
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 13),
                     ),
                     const Spacer(),
                     Text(
@@ -254,17 +267,18 @@ class _MonitorScreenState extends State<MonitorScreen>
                 GlassTheme.progressBar(vramPercent,
                     color: _vramColor(vramPercent)),
 
-                // Torch VRAM (если отличается)
+                // Torch VRAM
                 if (torchVramTotal > 0 && torchUsed > 0.01) ...[
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       Icon(Icons.local_fire_department_rounded,
                           size: 14,
-                          color: Colors.orange.withValues(alpha: 0.7)),
+                          color: const Color(0xFFFF9F0A)
+                              .withValues(alpha: 0.7)),
                       const SizedBox(width: 6),
                       Text(
-                        'PyTorch: ${torchUsed.toStringAsFixed(1)} / ${torchVramTotal.toStringAsFixed(1)} ГБ',
+                        'PyTorch VRAM: ${torchUsed.toStringAsFixed(1)} / ${torchVramTotal.toStringAsFixed(1)} ГБ',
                         style: const TextStyle(
                             color: Colors.white70, fontSize: 12),
                       ),
@@ -274,17 +288,17 @@ class _MonitorScreenState extends State<MonitorScreen>
                     torchVramTotal > 0
                         ? (torchUsed / torchVramTotal * 100)
                         : 0,
-                    color: Colors.orange,
+                    color: const Color(0xFFFF9F0A),
                   ),
                 ],
 
-// Мини-график VRAM (без дублирующей подписи)
+                // VRAM sparkline
                 if (_vramHistory.length > 2) ...[
                   const SizedBox(height: 12),
                   _buildMiniChart(
-                    'История',
+                    'ИСТОРИЯ VRAM',
                     _vramHistory,
-                    Colors.green,
+                    GlassTheme.accentGreen,
                   ),
                 ],
 
@@ -298,12 +312,11 @@ class _MonitorScreenState extends State<MonitorScreen>
   }
 
   Color _vramColor(double percent) {
-    if (percent < 60) return Colors.green;
-    if (percent < 85) return Colors.orange;
-    return Colors.red;
+    if (percent < 60) return GlassTheme.accentGreen;
+    if (percent < 85) return const Color(0xFFFF9F0A);
+    return GlassTheme.accentRed;
   }
 
-  /// Мини-график (sparkline)
   Widget _buildMiniChart(
       String label,
       List<double> data,
@@ -318,12 +331,19 @@ class _MonitorScreenState extends State<MonitorScreen>
         Row(
           children: [
             Text(label,
-                style: TextStyle(color: Colors.grey[500], fontSize: 10)),
+                style: TextStyle(
+                  color: GlassTheme.textTertiary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                )),
             const Spacer(),
             Text(
               '${currentVal.toStringAsFixed(0)}$suffix',
               style: TextStyle(
-                  color: color, fontSize: 10, fontWeight: FontWeight.w600),
+                  color: color,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -352,11 +372,12 @@ class _MonitorScreenState extends State<MonitorScreen>
     final ramPercent = ramTotal > 0 ? (ramUsed / ramTotal * 100) : 0.0;
 
     return GlassTheme.card(
-      borderColor: Colors.amber.withValues(alpha: 0.2),
+      borderColor: GlassTheme.accentYellow.withValues(alpha: 0.2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GlassTheme.sectionTitle(Icons.computer, Colors.amber, 'Система'),
+          GlassTheme.sectionTitle(
+              Icons.computer_rounded, GlassTheme.accentYellow, 'СИСТЕМА'),
           const SizedBox(height: 12),
           Wrap(
             spacing: 6,
@@ -372,25 +393,30 @@ class _MonitorScreenState extends State<MonitorScreen>
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.memory,
-                  size: 14, color: Colors.amber.withValues(alpha: 0.7)),
+              Icon(Icons.memory_rounded,
+                  size: 14,
+                  color: GlassTheme.accentYellow.withValues(alpha: 0.7)),
               const SizedBox(width: 6),
               Text(
                 'RAM: ${ramUsed.toStringAsFixed(1)} / ${ramTotal.toStringAsFixed(1)} ГБ',
-                style: const TextStyle(color: Colors.white70, fontSize: 13),
+                style:
+                const TextStyle(color: Colors.white70, fontSize: 13),
               ),
               const Spacer(),
               Text(
                 '${ramPercent.toStringAsFixed(0)}%',
                 style: TextStyle(
-                  color: ramPercent > 85 ? Colors.red : Colors.amber,
+                  color: ramPercent > 85
+                      ? GlassTheme.accentRed
+                      : GlassTheme.accentYellow,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
-          GlassTheme.progressBar(ramPercent, color: Colors.amber),
+          GlassTheme.progressBar(ramPercent,
+              color: GlassTheme.accentYellow),
         ],
       ),
     );
@@ -408,7 +434,8 @@ class _MonitorScreenState extends State<MonitorScreen>
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('$label ',
-              style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+              style: TextStyle(
+                  color: GlassTheme.textTertiary, fontSize: 11)),
           Text(version,
               style: const TextStyle(
                   color: Colors.white,
@@ -427,30 +454,36 @@ class _MonitorScreenState extends State<MonitorScreen>
 
     return GlassTheme.card(
       borderColor: isActive
-          ? Colors.green.withValues(alpha: 0.3)
+          ? GlassTheme.accentGreen.withValues(alpha: 0.3)
           : Colors.white.withValues(alpha: 0.1),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GlassTheme.sectionTitle(
-            Icons.queue,
-            isActive ? Colors.green : Colors.grey,
-            'Очередь',
+            Icons.queue_rounded,
+            isActive ? GlassTheme.accentGreen : GlassTheme.textTertiary,
+            'ОЧЕРЕДЬ',
             trailing: GlassTheme.statusBadge(
-              isActive ? 'Активно' : 'Свободно',
-              isActive ? Colors.green : Colors.grey,
+              isActive ? 'АКТИВНО' : 'СВОБОДНО',
+              isActive ? GlassTheme.accentGreen : GlassTheme.textTertiary,
             ),
           ),
           const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
-                  child: _statChip('Выполняется', '${running.length}',
-                      running.isNotEmpty ? Colors.green : Colors.grey)),
+                  child: _statChip('ВЫПОЛНЯЕТСЯ', '${running.length}',
+                      running.isNotEmpty
+                          ? GlassTheme.accentGreen
+                          : GlassTheme.textTertiary)),
               const SizedBox(width: 8),
               Expanded(
-                  child: _statChip('В ожидании', '${pending.length}',
-                      pending.isNotEmpty ? Colors.orange : Colors.grey)),
+                  child: _statChip(
+                      'В ОЖИДАНИИ',
+                      '${pending.length}',
+                      pending.isNotEmpty
+                          ? const Color(0xFFFF9F0A)
+                          : GlassTheme.textTertiary)),
             ],
           ),
           if (running.isNotEmpty) ...[
@@ -461,26 +494,29 @@ class _MonitorScreenState extends State<MonitorScreen>
                   : '?';
               return Container(
                 margin: const EdgeInsets.only(top: 4),
-                padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.08),
+                  color:
+                  GlassTheme.accentGreen.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
-                  border:
-                  Border.all(color: Colors.green.withValues(alpha: 0.15)),
+                  border: Border.all(
+                      color: GlassTheme.accentGreen
+                          .withValues(alpha: 0.15)),
                 ),
                 child: Row(
                   children: [
-                    const SizedBox(
+                    SizedBox(
                       width: 12,
                       height: 12,
                       child: CircularProgressIndicator(
-                          strokeWidth: 1.5, color: Colors.green),
+                          strokeWidth: 1.5,
+                          color: GlassTheme.accentGreen),
                     ),
                     const SizedBox(width: 8),
                     Text('$id...',
                         style: TextStyle(
-                            color: Colors.green[300],
+                            color: GlassTheme.accentGreen,
                             fontSize: 12,
                             fontFamily: 'monospace')),
                   ],
@@ -505,11 +541,16 @@ class _MonitorScreenState extends State<MonitorScreen>
         children: [
           Text(value,
               style: TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: color)),
           const SizedBox(height: 2),
           Text(label,
-              style:
-              TextStyle(fontSize: 10, color: color.withValues(alpha: 0.7))),
+              style: TextStyle(
+                  fontSize: 9,
+                  color: color.withValues(alpha: 0.7),
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5)),
         ],
       ),
     );
@@ -526,15 +567,16 @@ class _MonitorScreenState extends State<MonitorScreen>
     final entries = sortedEntries.take(15).toList();
 
     return GlassTheme.card(
-      borderColor: Colors.blue.withValues(alpha: 0.2),
+      borderColor: GlassTheme.accentBlue.withValues(alpha: 0.2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GlassTheme.sectionTitle(
-            Icons.history,
-            Colors.blue,
-            'Последние задачи',
-            trailing: GlassTheme.chip('${_history.length}', Colors.blue),
+            Icons.history_rounded,
+            GlassTheme.accentBlue,
+            'ПОСЛЕДНИЕ ЗАДАЧИ',
+            trailing:
+            GlassTheme.chip('${_history.length}', GlassTheme.accentBlue),
           ),
           const SizedBox(height: 12),
           if (entries.isEmpty)
@@ -542,7 +584,7 @@ class _MonitorScreenState extends State<MonitorScreen>
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Text('Нет задач',
-                    style: TextStyle(color: Colors.grey[700])),
+                    style: TextStyle(color: GlassTheme.textTertiary)),
               ),
             )
           else
@@ -559,7 +601,8 @@ class _MonitorScreenState extends State<MonitorScreen>
       if (msg is List && msg.length > 1 && msg[0] == 'execution_start') {
         final ts = msg[1]['timestamp'];
         if (ts != null) {
-          return DateTime.fromMillisecondsSinceEpoch((ts * 1000).toInt());
+          return DateTime.fromMillisecondsSinceEpoch(
+              (ts * 1000).toInt());
         }
       }
     }
@@ -582,7 +625,8 @@ class _MonitorScreenState extends State<MonitorScreen>
         final payload = msg[1] as Map? ?? {};
         final ts = payload['timestamp'];
         if (ts != null) {
-          final dt = DateTime.fromMillisecondsSinceEpoch((ts * 1000).toInt());
+          final dt = DateTime.fromMillisecondsSinceEpoch(
+              (ts * 1000).toInt());
           if (type == 'execution_start') {
             startDt = dt;
             timeStr =
@@ -590,7 +634,8 @@ class _MonitorScreenState extends State<MonitorScreen>
             dateStr =
             '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}';
           }
-          if (type == 'execution_success' || type == 'execution_error') {
+          if (type == 'execution_success' ||
+              type == 'execution_error') {
             endDt = dt;
           }
         }
@@ -600,7 +645,8 @@ class _MonitorScreenState extends State<MonitorScreen>
     String durationStr = '';
     if (startDt != null && endDt != null) {
       final sec = endDt.difference(startDt).inSeconds;
-      durationStr = sec >= 60 ? '${sec ~/ 60}м ${sec % 60}с' : '$secс';
+      durationStr =
+      sec >= 60 ? '${sec ~/ 60}м ${sec % 60}с' : '$secс';
     }
 
     int imageCount = 0;
@@ -612,7 +658,8 @@ class _MonitorScreenState extends State<MonitorScreen>
       }
     }
 
-    final Color statusColor = completed ? Colors.green : Colors.red;
+    final Color statusColor =
+    completed ? GlassTheme.accentGreen : GlassTheme.accentRed;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
@@ -620,12 +667,15 @@ class _MonitorScreenState extends State<MonitorScreen>
       decoration: BoxDecoration(
         color: statusColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: statusColor.withValues(alpha: 0.12)),
+        border:
+        Border.all(color: statusColor.withValues(alpha: 0.12)),
       ),
       child: Row(
         children: [
           Icon(
-            completed ? Icons.check_circle : Icons.error_outline,
+            completed
+                ? Icons.check_circle_rounded
+                : Icons.error_outline_rounded,
             color: statusColor,
             size: 16,
           ),
@@ -633,46 +683,53 @@ class _MonitorScreenState extends State<MonitorScreen>
           Text(
             id.length > 8 ? id.substring(0, 8) : id,
             style: TextStyle(
-                color: Colors.grey[500],
+                color: GlassTheme.textTertiary,
                 fontSize: 11,
                 fontFamily: 'monospace'),
           ),
           const SizedBox(width: 8),
           if (dateStr.isNotEmpty)
             Text('$dateStr ',
-                style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+                style: TextStyle(
+                    color: GlassTheme.textTertiary, fontSize: 10)),
           if (timeStr.isNotEmpty)
             Text(timeStr,
-                style: TextStyle(color: Colors.grey[400], fontSize: 11)),
+                style: TextStyle(
+                    color: GlassTheme.textSecondary, fontSize: 11)),
           const Spacer(),
           if (durationStr.isNotEmpty)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 6, vertical: 2),
               margin: const EdgeInsets.only(right: 6),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(durationStr,
-                  style: TextStyle(color: Colors.grey[400], fontSize: 10)),
+                  style: TextStyle(
+                      color: GlassTheme.textSecondary, fontSize: 10)),
             ),
           if (imageCount > 0)
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.image, size: 12, color: Colors.blue[300]),
+                Icon(Icons.image_rounded,
+                    size: 12, color: GlassTheme.accentBlue),
                 const SizedBox(width: 2),
                 Text('$imageCount',
-                    style: TextStyle(color: Colors.blue[300], fontSize: 10)),
+                    style: TextStyle(
+                        color: GlassTheme.accentBlue, fontSize: 10)),
                 const SizedBox(width: 6),
               ],
             ),
           Text(
-            completed ? 'OK' : 'Ошибка',
+            completed ? 'OK' : 'ОШИБКА',
             style: TextStyle(
                 color: statusColor,
                 fontSize: 11,
-                fontWeight: FontWeight.w500),
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3),
           ),
         ],
       ),
@@ -681,7 +738,6 @@ class _MonitorScreenState extends State<MonitorScreen>
 }
 
 // ── Sparkline painter ──
-
 class _SparklinePainter extends CustomPainter {
   final List<double> data;
   final Color color;
@@ -711,12 +767,12 @@ class _SparklinePainter extends CustomPainter {
           color.withValues(alpha: 0.2),
           color.withValues(alpha: 0.0),
         ],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
+      ).createShader(
+          Rect.fromLTWH(0, 0, size.width, size.height))
       ..style = PaintingStyle.fill;
 
     final path = Path();
     final fillPath = Path();
-
     final stepX = size.width / (data.length - 1);
 
     for (int i = 0; i < data.length; i++) {
@@ -744,5 +800,7 @@ class _SparklinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _SparklinePainter old) =>
       old.data.length != data.length ||
-          (data.isNotEmpty && old.data.isNotEmpty && old.data.last != data.last);
+          (data.isNotEmpty &&
+              old.data.isNotEmpty &&
+              old.data.last != data.last);
 }
